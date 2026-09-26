@@ -10,7 +10,7 @@ const nav = [
 <header class="site-header">
   <div class="container site-header__row">
     <a href="/" class="site-header__mark">Sean Despain</a>
-    <nav aria-label="Primary">
+    <nav aria-label="Primary" class="site-header__navwrap">
       <ul class="site-header__nav">
         {nav.map((item) => (
           <li><a href={item.href}>{item.label}</a></li>
@@ -63,9 +63,13 @@ const nav = [
   }
   .site-header__nav a:hover { border-bottom-color: var(--ink); }
 
-  @media (max-width: 640px) {
+  @media (max-width: 860px) {
     .site-header__row { justify-content: flex-start; }
-    .site-header__nav { gap: 0.4rem 0.85rem; width: 100%; }
+    .site-header__navwrap { flex: 1 0 100%; }
+    .site-header__nav { gap: 0.4rem 0.85rem; }
+    .site-header__nav a { font-size: 0.72rem; }
+  }
+  @media (max-width: 640px) {
     .site-header__nav a { font-size: 0.68rem; }
   }
 </style>
