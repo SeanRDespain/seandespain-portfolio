@@ -1,0 +1,81 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+---
+<Layout title="About" description="How Sean Despain works across product, design, brand, and code.">
+  <Header slot="header" />
+
+  <section class="about">
+    <div class="container about__inner">
+      <p class="eyebrow">About</p>
+      <h1>I don't like handing off the parts I understand best.</h1>
+
+      <p>
+        Most of what I've built started the same way: a real need, no team assigned to it yet, and
+        a decision to just build the thing rather than write a brief for someone else to build it.
+        That's how Peace Life, Jarvis, W.I.P Services, Qinty, and Once Upon a Princess all started —
+        five different worlds, the same instinct.
+      </p>
+
+      <p>
+        I move between product design, front-end and back-end engineering, brand identity, and
+        marketing because in a small venture those aren't separate jobs, they're separate hours of
+        the same day. Designing the onboarding flow for a wellness app, writing the Firebase auth
+        layer under it, and then building the marketing site that sells it are the same project to
+        me, not three handoffs. I've also run the businesses underneath the products: founded and
+        staffed a construction company, founded a CBD company, and now direct an international
+        nonprofit program on the ground in Peru.
+      </p>
+
+      <p>
+        That range means I approach a new problem by asking what it actually needs, not what
+        discipline I'd prefer to reach for. Sometimes the answer is an interaction-design problem.
+        Sometimes it's an outright bug in a Unity build-stripping edge case. Sometimes it's realizing
+        a page is about to publish a claim nobody's verified, and the right move is a placeholder,
+        not a guess dressed up as a fact — that discipline runs through the Qinty and Once Upon a
+        Princess builds especially.
+      </p>
+
+      <p>
+        I use AI tools heavily in how I build — for prototyping, for code, for content workflows —
+        the same way I'd use any other tool that gets a real product shipped faster without lowering
+        the bar on what ships. The work on this site is the evidence; the tools behind it are just
+        tools.
+      </p>
+
+      <div class="about__cta">
+        <a class="btn btn--primary" href="/#work">See the work</a>
+        <a class="btn btn--ghost" href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx">Download résumé</a>
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Layout>
+
+<style>
+  .about { padding-block: var(--space-6) var(--space-7); }
+  .about__inner { max-width: 42rem; }
+  .about h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--step-4);
+    line-height: 1.15;
+    margin: 0.4rem 0 var(--space-4);
+  }
+  .about p { color: var(--ink); font-size: var(--step-0); margin-bottom: var(--space-3); }
+  .about__cta { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-4); }
+  .btn {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    text-decoration: none;
+    padding: 0.85rem 1.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--ink);
+  }
+  .btn--primary { background: var(--ink); color: var(--paper); }
+  .btn--ghost { background: transparent; color: var(--ink); }
+  .btn--ghost:hover { background: var(--line); }
+</style>

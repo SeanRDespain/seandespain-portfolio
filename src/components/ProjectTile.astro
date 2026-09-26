@@ -1,0 +1,69 @@
+---
+const { project } = Astro.props;
+---
+<a class="tile" href={`/work/${project.slug}/`} style={`--tile-a:${project.accent.a}; --tile-b:${project.accent.b};`}>
+  <span class="tile__image-wrap">
+    <img src={project.heroImage} alt="" loading="lazy" class="tile__image" />
+  </span>
+  <span class="tile__body">
+    <span class="tile__kind eyebrow">{project.kind}</span>
+    <span class="tile__name">{project.name}</span>
+    <span class="tile__tagline">{project.tagline}</span>
+    <span class="tile__meta">{project.role} · {project.years}</span>
+  </span>
+</a>
+
+<style>
+  .tile {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--tile-a);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tile:hover, .tile:focus-visible {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px -18px rgba(21, 23, 27, 0.4);
+  }
+  .tile__image-wrap {
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--tile-b);
+  }
+  .tile__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    transition: transform 0.4s ease;
+  }
+  .tile:hover .tile__image { transform: scale(1.04); }
+  .tile__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: var(--space-3);
+  }
+  .tile__kind { color: var(--tile-b); }
+  .tile__name {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    line-height: 1.15;
+  }
+  .tile__tagline {
+    color: var(--graphite);
+    font-size: var(--step--1);
+  }
+  .tile__meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--graphite);
+    margin-top: 0.3rem;
+  }
+</style>

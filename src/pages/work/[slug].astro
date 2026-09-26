@@ -1,0 +1,195 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import { projects } from "../../data/projects.js";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const other = projects.filter((p) => p.slug !== project.slug).slice(0, 2);
+---
+<Layout title={project.name} description={project.summary} image={project.heroImage}>
+  <Header slot="header" />
+
+  <article class="case" style={`--accent-a:${project.accent.a}; --accent-b:${project.accent.b};`}>
+    <header class="case__hero">
+      <div class="container">
+        <a class="back-link" href="/#work">← All work</a>
+        <p class="eyebrow case__kind">{project.kind} · {project.years}</p>
+        <h1>{project.name}</h1>
+        <p class="case__tagline">{project.tagline}</p>
+        <p class="case__role">{project.role}</p>
+        <div class="case__links">
+          {project.live && <a class="btn btn--ghost" href={project.live} target="_blank" rel="noopener noreferrer">Live site ↗</a>}
+          {project.appStore && <a class="btn btn--ghost" href={project.appStore} target="_blank" rel="noopener noreferrer">App Store ↗</a>}
+        </div>
+      </div>
+    </header>
+
+    <div class="case__image-wrap container">
+      <img src={project.heroImage} alt={project.images[0]?.alt || project.name} class="case__image" />
+      {project.note && <p class="case__note">{project.note}</p>}
+    </div>
+
+    <div class="container case__body">
+      <section class="case__section">
+        <h2>What it is</h2>
+        <p>{project.whatItIs}</p>
+      </section>
+
+      <section class="case__section">
+        <h2>Why it existed</h2>
+        <p>{project.whyItExisted}</p>
+      </section>
+
+      <section class="case__section">
+        <h2>My role</h2>
+        <p>{project.role_detail}</p>
+      </section>
+
+      <div class="case__grid">
+        <section class="case__section">
+          <h2>What I designed</h2>
+          <ul>{project.designed.map((d) => <li>{d}</li>)}</ul>
+        </section>
+        <section class="case__section">
+          <h2>What I built</h2>
+          <ul>{project.built.map((b) => <li>{b}</li>)}</ul>
+        </section>
+      </div>
+
+      <section class="case__section">
+        <h2>Challenges</h2>
+        <ul>{project.challenges.map((c) => <li>{c}</li>)}</ul>
+      </section>
+
+      <section class="case__section case__outcome">
+        <h2>Result</h2>
+        <p>{project.outcome}</p>
+      </section>
+
+      {project.images.length > 1 && (
+        <section class="case__gallery">
+          {project.images.slice(1).map((img) => (
+            <img src={img.src} alt={img.alt} loading="lazy" />
+          ))}
+        </section>
+      )}
+
+      <section class="case__section">
+        <h2>Technology</h2>
+        <p class="case__tech">{project.tech.join(" · ")}</p>
+      </section>
+    </div>
+
+    <nav class="case__next container" aria-label="Other projects">
+      <p class="eyebrow">More work</p>
+      <div class="case__next-grid">
+        {other.map((p) => (
+          <a href={`/work/${p.slug}/`} class="case__next-link">
+            <span>{p.name}</span>
+            <span class="case__next-tagline">{p.tagline}</span>
+          </a>
+        ))}
+      </div>
+    </nav>
+  </article>
+
+  <Footer slot="footer" />
+</Layout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    text-decoration: none;
+    color: var(--graphite);
+    margin-bottom: var(--space-3);
+  }
+  .case__hero { padding-block: var(--space-6) var(--space-4); }
+  .case__kind { color: var(--accent-b); }
+  .case__hero h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--step-5);
+    line-height: 1.05;
+    margin: 0.3rem 0 var(--space-2);
+  }
+  .case__tagline { font-size: var(--step-1); color: var(--graphite); max-width: 38rem; }
+  .case__role { font-family: var(--font-mono); font-size: var(--step--1); margin-top: var(--space-2); }
+  .case__links { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+
+  .case__image-wrap { margin-bottom: var(--space-6); }
+  .case__image {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border-top: 6px solid var(--accent-a);
+  }
+  .case__note {
+    font-size: var(--step--1);
+    color: var(--graphite);
+    font-style: italic;
+    margin-top: var(--space-2);
+  }
+
+  .case__body { max-width: 46rem; margin-inline: auto; }
+  .case__section { margin-bottom: var(--space-5); }
+  .case__section h2 {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 400;
+    margin: 0 0 var(--space-2);
+  }
+  .case__section p { color: var(--ink); }
+  .case__section ul { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .case__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  .case__outcome {
+    border-left: 3px solid var(--accent-a);
+    padding-left: var(--space-3);
+  }
+  .case__tech { font-family: var(--font-mono); font-size: var(--step--1); color: var(--graphite); }
+
+  .case__gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .case__gallery img { border-radius: var(--radius-sm); }
+
+  .case__next { padding-block: var(--space-6); border-top: 1px solid var(--line); }
+  .case__next-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+  .case__next-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-decoration: none;
+    color: var(--ink);
+    padding: var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+  }
+  .case__next-link:hover { border-color: var(--ink); }
+  .case__next-link span:first-child { font-family: var(--font-display); font-size: var(--step-1); }
+  .case__next-tagline { color: var(--graphite); font-size: var(--step--1); }
+
+  @media (max-width: 700px) {
+    .case__grid { grid-template-columns: 1fr; }
+  }
+</style>

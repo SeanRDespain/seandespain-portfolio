@@ -1,0 +1,71 @@
+---
+const nav = [
+  { href: "/#work", label: "Work" },
+  { href: "/about/", label: "About" },
+  { href: "/capabilities/", label: "Capabilities" },
+  { href: "/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx", label: "Resume" },
+  { href: "/contact/", label: "Contact" },
+];
+---
+<header class="site-header">
+  <div class="container site-header__row">
+    <a href="/" class="site-header__mark">Sean Despain</a>
+    <nav aria-label="Primary">
+      <ul class="site-header__nav">
+        {nav.map((item) => (
+          <li><a href={item.href}>{item.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+  }
+  .site-header__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    row-gap: 0.5rem;
+    padding-block: var(--space-2);
+  }
+  .site-header__mark {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--step-1);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .site-header__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem var(--space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.03em;
+  }
+  .site-header__nav a {
+    text-decoration: none;
+    color: var(--ink);
+    padding-bottom: 2px;
+    border-bottom: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .site-header__nav a:hover { border-bottom-color: var(--ink); }
+
+  @media (max-width: 640px) {
+    .site-header__row { justify-content: flex-start; }
+    .site-header__nav { gap: 0.4rem 0.85rem; width: 100%; }
+    .site-header__nav a { font-size: 0.68rem; }
+  }
+</style>

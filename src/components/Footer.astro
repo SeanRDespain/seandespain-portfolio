@@ -1,0 +1,52 @@
+<footer class="site-footer">
+  <div class="container site-footer__row">
+    <div>
+      <p class="site-footer__name">Sean Despain</p>
+      <p class="eyebrow">Provo, UT</p>
+    </div>
+    <ul class="site-footer__links">
+      <li><a href="mailto:seandespain@gmail.com">seandespain@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/sean-despain-560316116/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+      <li><a href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx">Download résumé</a></li>
+    </ul>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--line);
+    background: var(--ink);
+    color: var(--paper);
+    padding-block: var(--space-5);
+  }
+  .site-footer__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .site-footer__name {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--step-2);
+    margin: 0 0 0.2rem;
+  }
+  .site-footer .eyebrow { color: var(--graphite-soft, #9a9da3); }
+  .site-footer__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+  }
+  .site-footer__links a {
+    color: var(--paper);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line-on-ink);
+  }
+  .site-footer__links a:hover { border-bottom-color: var(--paper); }
+</style>

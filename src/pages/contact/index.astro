@@ -1,0 +1,48 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+---
+<Layout title="Contact" description="Get in touch with Sean Despain.">
+  <Header slot="header" />
+
+  <section class="contact">
+    <div class="container contact__inner">
+      <p class="eyebrow">Contact</p>
+      <h1>Let's talk about what you're building.</h1>
+      <p class="contact__sub">The fastest way to reach me is email.</p>
+
+      <ul class="contact__list">
+        <li>
+          <span class="eyebrow">Email</span>
+          <a href="mailto:seandespain@gmail.com">seandespain@gmail.com</a>
+        </li>
+        <li>
+          <span class="eyebrow">LinkedIn</span>
+          <a href="https://www.linkedin.com/in/sean-despain-560316116/" target="_blank" rel="noopener noreferrer">linkedin.com/in/sean-despain</a>
+        </li>
+        <li>
+          <span class="eyebrow">Résumé</span>
+          <a href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx">Download the hybrid product/creative-technology résumé</a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Layout>
+
+<style>
+  .contact { padding-block: var(--space-7); }
+  .contact__inner { max-width: 36rem; }
+  .contact h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--step-4);
+    margin: 0.4rem 0 0.3rem;
+  }
+  .contact__sub { color: var(--graphite); margin-bottom: var(--space-5); }
+  .contact__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+  .contact__list li { display: flex; flex-direction: column; gap: 0.2rem; border-bottom: 1px solid var(--line); padding-bottom: var(--space-2); }
+  .contact__list a { font-size: var(--step-1); text-decoration: none; border-bottom: 1px solid var(--ink); width: fit-content; }
+</style>

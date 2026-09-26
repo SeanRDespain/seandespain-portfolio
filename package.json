@@ -1,0 +1,21 @@
+{
+  "name": "seandespain-portfolio",
+  "version": "1.0.0",
+  "description": "Sean Despain portfolio",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4500",
+    "build": "astro build",
+    "preview": "astro preview --port 4501",
+    "shoot": "node shoot.mjs"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.5"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "sharp": "^0.35.4"
+  }
+}

@@ -1,0 +1,137 @@
+/* ============================================================
+   Sean Despain — design tokens
+   Shell stays neutral (ink / paper / graphite) on purpose: five
+   ventures each carry their own real brand color, and the shell's
+   job is to frame them, never compete with them. Each project's
+   accent below is sampled from that project's own live brand,
+   not invented for this site.
+   ============================================================ */
+
+:root {
+  /* shell — neutral, constant everywhere */
+  --ink: #15171b;
+  --ink-soft: #2a2d33;
+  --paper: #f6f4ef;
+  --paper-raised: #fffdfa;
+  --graphite: #6b6f76;
+  --graphite-soft: #9a9da3;
+  --line: #ddd9d0;
+  --line-on-ink: #34383f;
+
+  /* type */
+  --font-display: "Instrument Serif", "Times New Roman", serif;
+  --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.875rem);
+  --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  --step-1: clamp(1.15rem, 1.1rem + 0.25vw, 1.3rem);
+  --step-2: clamp(1.4rem, 1.3rem + 0.5vw, 1.75rem);
+  --step-3: clamp(1.9rem, 1.6rem + 1.2vw, 2.6rem);
+  --step-4: clamp(2.6rem, 2.1rem + 2vw, 3.8rem);
+  --step-5: clamp(3.2rem, 2.4rem + 3.4vw, 5.2rem);
+
+  --space-1: 0.4rem;
+  --space-2: 0.8rem;
+  --space-3: 1.4rem;
+  --space-4: 2.2rem;
+  --space-5: 3.6rem;
+  --space-6: 5.6rem;
+  --space-7: 8.8rem;
+
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --container: 1180px;
+
+  /* per-venture accents — used only inside that venture's tile/case study */
+  --pl-gold: #b8912c;
+  --pl-teal: #1f3a2e;
+  --jarvis-gold: #c9a227;
+  --jarvis-green: #163024;
+  --wip-gold: #d4af37;
+  --wip-green: #1b2e22;
+  --qinty-forest: #2f4b3c;
+  --qinty-terracotta: #b5652e;
+  --oup-lavender: #9c86c9;
+  --oup-plum: #2e1f3b;
+  --oup-gold: #c9a227;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, video { max-width: 100%; display: block; }
+
+a { color: inherit; }
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--space-3);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--graphite);
+}
+
+.serif-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -3rem;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  z-index: 100;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: var(--space-3); }
