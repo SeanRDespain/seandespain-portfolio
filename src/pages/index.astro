@@ -22,6 +22,8 @@ const capabilities = [
       <span class="hero__aura-blob hero__aura-blob--4"></span>
       <span class="hero__aura-blob hero__aura-blob--5"></span>
       <span class="hero__aura-blob hero__aura-blob--6"></span>
+      <span class="hero__aura-sheen"></span>
+      <span class="hero__aura-vignette"></span>
     </div>
     <div class="container hero__inner">
       <p class="eyebrow" data-reveal>Product · Brand · Code</p>
@@ -136,87 +138,113 @@ const capabilities = [
   .hero {
     position: relative;
     overflow: hidden;
-    background: var(--opal-base);
+    background:
+      radial-gradient(120% 90% at 50% 15%, #3c2c18 0%, #21160e 48%, #120d0a 100%);
     padding-block: var(--space-7) var(--space-6);
   }
   .hero__aura {
     position: absolute;
-    inset: -15% -15% -35% -15%;
+    inset: 0;
     z-index: 0;
     pointer-events: none;
+    overflow: hidden;
+  }
+  .hero__aura-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(85% 75% at 50% 35%, transparent 40%, rgba(8, 6, 4, 0.55) 100%);
+    z-index: 2;
+  }
+  .hero__aura-sheen {
+    position: absolute;
+    inset: -20% -40%;
+    background: linear-gradient(115deg,
+      transparent 35%, rgba(255, 246, 220, 0.16) 48%, rgba(255, 246, 220, 0.28) 50%, rgba(255, 246, 220, 0.16) 52%, transparent 65%);
+    background-size: 220% 220%;
+    animation: sheenSweep 9s var(--ease-in-out) infinite;
+    z-index: 1;
+  }
+  @keyframes sheenSweep {
+    0% { background-position: 120% -20%; }
+    50% { background-position: -20% 120%; }
+    100% { background-position: 120% -20%; }
   }
   .hero__aura-blob {
     position: absolute;
-    width: 34vw;
-    height: 34vw;
-    max-width: 480px;
-    max-height: 480px;
-    min-width: 260px;
-    min-height: 260px;
+    width: 26vw;
+    height: 26vw;
+    max-width: 360px;
+    max-height: 360px;
+    min-width: 200px;
+    min-height: 200px;
     border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.4;
-    mix-blend-mode: multiply;
-    animation: auraDrift 22s var(--ease-in-out) infinite, auraShimmer 6s ease-in-out infinite;
+    filter: blur(42px);
+    opacity: 0.65;
+    mix-blend-mode: screen;
+    animation: auraDrift 22s var(--ease-in-out) infinite, auraShimmer 5s ease-in-out infinite;
   }
   .hero__aura-blob--1 {
-    top: -14%; left: -8%;
-    background: var(--opal-honey);
-    animation-duration: 21s, 5.5s;
+    top: -8%; left: -4%;
+    background: #f3b53d;
+    animation-duration: 21s, 4.6s;
   }
   .hero__aura-blob--2 {
-    top: -18%; right: -18%;
-    width: 30vw; height: 30vw; max-width: 420px; max-height: 420px;
-    background: var(--opal-violet);
-    animation-duration: 27s, 7s;
+    top: -14%; right: -8%;
+    width: 22vw; height: 22vw; max-width: 320px; max-height: 320px;
+    background: #e94fb0;
+    animation-duration: 27s, 6.2s;
     animation-delay: -6s, -1s;
   }
   .hero__aura-blob--3 {
-    bottom: -18%; left: 14%;
-    background: var(--opal-fire);
-    animation-duration: 31s, 6.5s;
+    bottom: -14%; left: 10%;
+    background: #ff6a2e;
+    animation-duration: 31s, 5.4s;
     animation-delay: -13s, -3s;
   }
   .hero__aura-blob--4 {
-    bottom: -12%; right: 8%;
-    background: var(--opal-mint);
-    animation-duration: 25s, 8s;
+    bottom: -10%; right: 6%;
+    background: #14e0b4;
+    animation-duration: 25s, 6.8s;
     animation-delay: -19s, -4.5s;
   }
   .hero__aura-blob--5 {
-    top: 22%; left: 32%;
-    width: 24vw; height: 24vw; max-width: 340px; max-height: 340px; min-width: 200px; min-height: 200px;
-    background: var(--opal-jade);
-    animation-duration: 29s, 7.5s;
+    top: 30%; left: 38%;
+    width: 20vw; height: 20vw; max-width: 280px; max-height: 280px; min-width: 170px; min-height: 170px;
+    background: #22c55e;
+    animation-duration: 29s, 6.5s;
     animation-delay: -9s, -2s;
   }
   .hero__aura-blob--6 {
-    top: 8%; right: 26%;
-    width: 22vw; height: 22vw; max-width: 300px; max-height: 300px; min-width: 180px; min-height: 180px;
-    background: var(--opal-sapphire);
-    animation-duration: 33s, 9s;
+    top: 6%; right: 30%;
+    width: 18vw; height: 18vw; max-width: 240px; max-height: 240px; min-width: 150px; min-height: 150px;
+    background: #4f8bf7;
+    animation-duration: 33s, 7.5s;
     animation-delay: -24s, -5.5s;
   }
   @keyframes auraDrift {
     0%, 100% { translate: 0 0; scale: 1; }
-    33% { translate: 4% 6%; scale: 1.1; }
-    66% { translate: -5% -3%; scale: 0.92; }
+    33% { translate: 4% 6%; scale: 1.15; }
+    66% { translate: -5% -3%; scale: 0.88; }
   }
   @keyframes auraShimmer {
-    0%, 100% { opacity: 0.28; }
-    50% { opacity: 0.48; }
+    0%, 100% { opacity: 0.42; }
+    50% { opacity: 0.72; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hero__aura-blob { animation: none; opacity: 0.36; }
+    .hero__aura-blob { animation: none; opacity: 0.55; }
+    .hero__aura-sheen { animation: none; background-position: 50% 50%; }
   }
-  .hero__inner { position: relative; z-index: 1; max-width: 46rem; }
+  .hero__inner { position: relative; z-index: 3; max-width: 46rem; }
+  .hero .eyebrow { color: rgba(255, 244, 224, 0.65); }
   .hero h1 {
     font-family: var(--font-display);
     font-weight: 400;
     font-size: var(--step-5);
     line-height: 1.05;
+    color: #fbf6ec;
     margin: 0.5rem 0 var(--space-3);
   }
+  .hero h1 .serif-italic { color: #f3b53d; }
   .hero__pipeline {
     display: flex;
     flex-wrap: wrap;
@@ -224,21 +252,25 @@ const capabilities = [
     gap: 0.5rem;
     font-family: var(--font-mono);
     font-size: var(--step--1);
-    color: var(--graphite);
+    color: rgba(255, 244, 224, 0.55);
     margin: 0 0 var(--space-3);
   }
   .hero__pipeline-word-wrap {
     display: inline-block;
     min-width: 4.5em;
-    color: var(--ink);
+    color: #fbf6ec;
     font-weight: 500;
   }
   html:not(.js) .hero__pipeline-word-wrap { display: none; }
   .hero__sub {
-    color: var(--graphite);
+    color: rgba(255, 244, 224, 0.72);
     font-size: var(--step-1);
     max-width: 42rem;
   }
+  .hero .btn--primary { background: #fbf6ec; color: #17120b; border-color: #fbf6ec; }
+  .hero .btn--primary:hover { background: #f3b53d; border-color: #f3b53d; }
+  .hero .btn--ghost { color: #fbf6ec; border-color: rgba(255, 244, 224, 0.5); }
+  .hero .btn--ghost:hover { background: rgba(255, 244, 224, 0.12); }
   .hero__ctas {
     display: flex;
     gap: var(--space-2);
@@ -276,9 +308,9 @@ const capabilities = [
     align-items: center;
     gap: 0.4rem;
     text-decoration: none;
-    color: var(--graphite);
+    color: rgba(255, 244, 224, 0.6);
   }
-  .hero__stamps a:hover { color: var(--ink); }
+  .hero__stamps a:hover { color: #fbf6ec; }
   .hero__stamp-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
