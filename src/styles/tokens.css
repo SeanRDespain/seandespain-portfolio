@@ -67,6 +67,11 @@
   --opal-sapphire: color-mix(in srgb, var(--oup-plum) 45%, var(--oup-lavender) 55%);
   --opal-mint: color-mix(in srgb, var(--pl-teal) 55%, white 45%);
 
+  /* matrix-green: brightened straight out of Peace Life's real teal so the
+     hero's "code rain" ties back to the same palette instead of importing
+     an unrelated neon green */
+  --matrix-green: color-mix(in srgb, var(--pl-teal) 45%, #6bffa0 55%);
+
   /* motion system: named, not arbitrary. every animation on the site uses one of these */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

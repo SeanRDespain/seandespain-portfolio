@@ -28,21 +28,35 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
     size: big ? (2.1 + rand() * 1.5).toFixed(2) : (1 + rand() * 0.9).toFixed(2),
     opacity: (big ? 0.8 : 0.5) + rand() * 0.4,
     twinkle: i % 3 !== 2,
+    flare: big && i % 27 === 0,
     delay: (rand() * 6).toFixed(2),
     duration: (3 + rand() * 3).toFixed(2),
   };
 });
 
 // matrix-style digit columns rising from the bottom edge and dissolving
-// partway up, well behind the hero copy. numbers only, per the brief.
-const matrixCols = Array.from({ length: 16 }).map((_, i) => {
-  const digits = Array.from({ length: 9 }).map(() => Math.floor(rand() * 10)).join("");
+// partway up. Denser at the edges, thinned out behind the headline/body
+// text column (roughly 26-72% of the width) so the effect frames the
+// copy instead of fighting it. Two "depths" (front: bigger, brighter,
+// sharper; back: smaller, dimmer, slightly blurred) give it read as a
+// field with real space in it, not a flat wall of digits.
+const COLS = 38;
+const matrixCols = Array.from({ length: COLS }).map((_, i) => {
+  const left = 1 + (i / (COLS - 1)) * 98 + (rand() * 2.2 - 1.1);
+  const inTextZone = left > 26 && left < 72;
+  const front = rand() > 0.55;
+  const digitCount = front ? 12 : 8;
+  const digits = Array.from({ length: digitCount })
+    .map(() => (rand() > 0.5 ? "1" : "0"))
+    .join("");
   return {
-    left: (4 + (i / 16) * 92 + (rand() * 4 - 2)).toFixed(1),
+    left: left.toFixed(1),
     digits,
-    delay: (rand() * 9).toFixed(2),
-    duration: (7 + rand() * 5).toFixed(2),
-    rise: (28 + rand() * 16).toFixed(0),
+    front,
+    delay: (rand() * 10).toFixed(2),
+    duration: (front ? 6 + rand() * 4 : 9 + rand() * 6).toFixed(2),
+    rise: (front ? 34 + rand() * 14 : 22 + rand() * 12).toFixed(0),
+    peakOpacity: ((front ? 0.55 : 0.32) * (inTextZone ? 0.4 : 1)).toFixed(2),
   };
 });
 ---
@@ -56,7 +70,7 @@ const matrixCols = Array.from({ length: 16 }).map((_, i) => {
       <span class="hero__stars">
         {stars.map((s) => (
           <span
-            class:list={["hero__star", s.twinkle && "hero__star--twinkle"]}
+            class:list={["hero__star", s.twinkle && "hero__star--twinkle", s.flare && "hero__star--flare"]}
             style={`top:${s.top}%; left:${s.left}%; width:${s.size}px; height:${s.size}px; opacity:${s.opacity.toFixed(2)}; animation-delay:${s.delay}s; animation-duration:${s.duration}s;`}
           ></span>
         ))}
@@ -67,8 +81,8 @@ const matrixCols = Array.from({ length: 16 }).map((_, i) => {
       <span class="hero__matrix">
         {matrixCols.map((col) => (
           <span
-            class="hero__matrix-col"
-            style={`left:${col.left}%; animation-delay:${col.delay}s; animation-duration:${col.duration}s; --rise:${col.rise};`}
+            class:list={["hero__matrix-col", col.front ? "hero__matrix-col--front" : "hero__matrix-col--back"]}
+            style={`left:${col.left}%; animation-delay:${col.delay}s; animation-duration:${col.duration}s; --rise:${col.rise}; --peak:${col.peakOpacity};`}
           >{col.digits.split("").join("\n")}</span>
         ))}
       </span>
@@ -260,6 +274,23 @@ const matrixCols = Array.from({ length: 16 }).map((_, i) => {
     0%, 100% { opacity: var(--star-o, 0.5); scale: 1; }
     50% { opacity: 0.15; scale: 0.7; }
   }
+  /* a handful of the brightest stars get a four-point glint, the way real
+     bright stars flare through a camera lens. Rare on purpose. */
+  .hero__star--flare::before,
+  .hero__star--flare::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: linear-gradient(90deg, transparent, rgba(253, 249, 238, 0.75), transparent);
+    translate: -50% -50%;
+  }
+  .hero__star--flare::before { width: 24px; height: 1px; }
+  .hero__star--flare::after {
+    width: 1px;
+    height: 24px;
+    background: linear-gradient(180deg, transparent, rgba(253, 249, 238, 0.75), transparent);
+  }
   .hero__shooting-star {
     position: absolute;
     width: 3px;
@@ -329,10 +360,12 @@ const matrixCols = Array.from({ length: 16 }).map((_, i) => {
     .hero__star--twinkle { animation: none; }
     .hero__shooting-star { display: none; }
   }
-  /* digit columns rising from the bottom edge and dissolving partway up,
-     well behind the hero copy: a quiet nod to code without literal "code
-     rain" covering the page. numbers only, kept short so it reads as
-     texture, not a gimmick. */
+  /* digit columns (binary, matrix-green) rising from the bottom edge and
+     dissolving on the way up. Dense at the left/right edges, thinned out
+     behind the headline/body column so it frames the copy instead of
+     sitting on top of it. Two depths (front/back) give it real space:
+     front columns are bigger, brighter, and sharp; back columns are
+     smaller, dimmer, and softly blurred, like they're further away. */
   .hero__matrix {
     position: absolute;
     inset: 0;
@@ -344,18 +377,25 @@ const matrixCols = Array.from({ length: 16 }).map((_, i) => {
     position: absolute;
     bottom: -18%;
     font-family: var(--font-mono);
-    font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.55;
     white-space: pre-line;
-    color: rgba(251, 246, 236, 0.6);
-    text-shadow: 0 0 6px rgba(251, 246, 236, 0.25);
+    color: var(--matrix-green);
     opacity: 0;
     animation: matrixRise linear infinite;
   }
+  .hero__matrix-col--front {
+    font-size: 15px;
+    text-shadow: 0 0 7px color-mix(in srgb, var(--matrix-green) 70%, transparent);
+  }
+  .hero__matrix-col--back {
+    font-size: 11px;
+    filter: blur(0.6px);
+    text-shadow: 0 0 4px color-mix(in srgb, var(--matrix-green) 50%, transparent);
+  }
   @keyframes matrixRise {
     0% { translate: 0 0; opacity: 0; }
-    9% { opacity: 0.55; }
-    55% { opacity: 0.3; }
+    9% { opacity: var(--peak, 0.4); }
+    55% { opacity: calc(var(--peak, 0.4) * 0.6); }
     76% { opacity: 0; }
     100% { translate: 0 calc(var(--rise, 32) * -1vh); opacity: 0; }
   }
