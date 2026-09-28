@@ -11,7 +11,7 @@ const capabilities = [
   { label: "Marketing", items: ["SEO", "GA4 & conversion tracking", "JSON-LD structured data", "Lead-generation funnels"] },
 ];
 
-// deterministic starfield — same build, same sky, so screenshots/QA are stable
+// deterministic starfield: same build, same sky, so screenshots/QA are stable
 function seededRandom(seed) {
   let s = seed;
   return () => {
@@ -25,11 +25,24 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
   return {
     top: (rand() * 100).toFixed(1),
     left: (rand() * 100).toFixed(1),
-    size: big ? (1.7 + rand() * 1.3).toFixed(2) : (0.7 + rand() * 0.8).toFixed(2),
-    opacity: (big ? 0.65 : 0.3) + rand() * 0.4,
+    size: big ? (2.1 + rand() * 1.5).toFixed(2) : (1 + rand() * 0.9).toFixed(2),
+    opacity: (big ? 0.8 : 0.5) + rand() * 0.4,
     twinkle: i % 3 !== 2,
     delay: (rand() * 6).toFixed(2),
     duration: (3 + rand() * 3).toFixed(2),
+  };
+});
+
+// matrix-style digit columns rising from the bottom edge and dissolving
+// partway up, well behind the hero copy. numbers only, per the brief.
+const matrixCols = Array.from({ length: 16 }).map((_, i) => {
+  const digits = Array.from({ length: 9 }).map(() => Math.floor(rand() * 10)).join("");
+  return {
+    left: (4 + (i / 16) * 92 + (rand() * 4 - 2)).toFixed(1),
+    digits,
+    delay: (rand() * 9).toFixed(2),
+    duration: (7 + rand() * 5).toFixed(2),
+    rise: (28 + rand() * 16).toFixed(0),
   };
 });
 ---
@@ -51,6 +64,14 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
       <span class="hero__shooting-star hero__shooting-star--1"></span>
       <span class="hero__shooting-star hero__shooting-star--2"></span>
       <span class="hero__shooting-star hero__shooting-star--3"></span>
+      <span class="hero__matrix">
+        {matrixCols.map((col) => (
+          <span
+            class="hero__matrix-col"
+            style={`left:${col.left}%; animation-delay:${col.delay}s; animation-duration:${col.duration}s; --rise:${col.rise};`}
+          >{col.digits.split("").join("\n")}</span>
+        ))}
+      </span>
       <span class="hero__aura-vignette"></span>
     </div>
     <div class="container hero__inner">
@@ -60,13 +81,13 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
       </h1>
 
       <p class="hero__pipeline" data-reveal data-reveal-delay="140">
-        <span class="hero__pipeline-label">Every venture, the same throughline —</span>
+        <span class="hero__pipeline-label">Every venture, the same throughline:</span>
         <span class="hero__pipeline-word-wrap"><span data-pipeline-word>Concept</span></span>
         <noscript>&nbsp;Concept → Brand → UX → Code → Launch → Operate</noscript>
       </p>
 
       <p class="hero__sub" data-reveal data-reveal-delay="200">
-        Five ventures, founded and operated end to end — a wellness app live on the App Store, a
+        Five ventures, founded and operated end to end: a wellness app live on the App Store, a
         business platform running four companies, a 50-person staffing company, a bilingual
         conservation program in the Amazon, and a children's entertainment brand. Same person,
         every time.
@@ -92,7 +113,7 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
     <div class="container">
       <div class="section-head" data-reveal>
         <h2>Five worlds, one builder</h2>
-        <p class="section-head__sub">Real, shipped or shipping products — the colors and imagery below are each project's own, not a template applied five times.</p>
+        <p class="section-head__sub">Real, shipped or shipping products. The colors and imagery below are each project's own, not a template applied five times.</p>
       </div>
     </div>
 
@@ -132,7 +153,7 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
     <div class="container">
       <div class="section-head" data-reveal>
         <h2>What that actually means</h2>
-        <p class="section-head__sub">Capability comes from the work above — nothing here is a claim without a project behind it.</p>
+        <p class="section-head__sub">Capability comes from the work above. Nothing here is a claim without a project behind it.</p>
       </div>
       <div class="capabilities__grid">
         {capabilities.map((group, i) => (
@@ -186,7 +207,7 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
     background: radial-gradient(85% 75% at 50% 35%, transparent 45%, rgba(6, 7, 8, 0.5) 100%);
     z-index: 1;
   }
-  /* two quiet, slow-drifting glows — the whole "signature moment" for the
+  /* two quiet, slow-drifting glows: the whole "signature moment" for the
      hero. No literal theme, no texture, just calm depth and color. */
   .hero__glow {
     position: absolute;
@@ -281,7 +302,7 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
   }
   /* rotate is set to atan2(dy, dx) of the matching translate below, so the
      tapered trail (which points "west" at rotate:0) always lines up exactly
-     opposite the direction of travel — a mismatch here is what made the
+     opposite the direction of travel. A mismatch here is what made the
      first version look fake. */
   @keyframes shoot1 {
     0%, 5% { opacity: 0; translate: 0 0; rotate: 31.4deg; }
@@ -307,6 +328,39 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
   @media (prefers-reduced-motion: reduce) {
     .hero__star--twinkle { animation: none; }
     .hero__shooting-star { display: none; }
+  }
+  /* digit columns rising from the bottom edge and dissolving partway up,
+     well behind the hero copy: a quiet nod to code without literal "code
+     rain" covering the page. numbers only, kept short so it reads as
+     texture, not a gimmick. */
+  .hero__matrix {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .hero__matrix-col {
+    position: absolute;
+    bottom: -18%;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-line;
+    color: rgba(251, 246, 236, 0.6);
+    text-shadow: 0 0 6px rgba(251, 246, 236, 0.25);
+    opacity: 0;
+    animation: matrixRise linear infinite;
+  }
+  @keyframes matrixRise {
+    0% { translate: 0 0; opacity: 0; }
+    9% { opacity: 0.55; }
+    55% { opacity: 0.3; }
+    76% { opacity: 0; }
+    100% { translate: 0 calc(var(--rise, 32) * -1vh); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__matrix { display: none; }
   }
   .hero__inner { position: relative; z-index: 3; max-width: 46rem; }
   .hero .eyebrow { color: rgba(255, 244, 224, 0.65); }

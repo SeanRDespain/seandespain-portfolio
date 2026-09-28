@@ -1,4 +1,4 @@
-// Structured project data — single source of truth for the homepage tiles,
+// Structured project data: single source of truth for the homepage tiles,
 // the case study pages, and (later) role-specific landing pages. Every claim
 // here is backed by a real project file or Sean's own prior resume; see
 // ../../../sean-despain-career/evidence-map.md for the full audit trail.
@@ -18,7 +18,7 @@ export const projects = [
     summary:
       "A guided seven-chakra wellness journey built in Unity for iOS, paired with a marketing site built from a blank file. Sean designed the product's progression system, built the engineering behind it, and directed the brand end to end.",
     whatItIs:
-      "Peace Life guides people through the seven chakras with Reiki hand positions, meditation, breathwork, journaling, and sound — a self-assessment first, then a daily practice path across 140+ scenes.",
+      "Peace Life guides people through the seven chakras with Reiki hand positions, meditation, breathwork, journaling, and sound: a self-assessment first, then a daily practice path across 140+ scenes.",
     whyItExisted:
       "Sean co-founded Peace Life to bring a structured, gamified approach to wellness practice that most meditation apps treat as a flat content library rather than a guided journey.",
     role_detail:
@@ -35,8 +35,8 @@ export const projects = [
       "GA4 and JSON-LD instrumentation, conversion-event tracking, and the App Store screenshot set.",
     ],
     challenges: [
-      "An iOS-only bug where a chakra unlock panel silently failed on real devices but worked in the Editor — traced to Unity stripping an `EditorOnly`-tagged object out of device builds.",
-      "Keeping post-launch content editable (copy, images, unlock colors) without forcing users through an app-store update cycle — solved with the remote manifest system.",
+      "An iOS-only bug where a chakra unlock panel silently failed on real devices but worked in the Editor, traced to Unity stripping an `EditorOnly`-tagged object out of device builds.",
+      "Keeping post-launch content editable (copy, images, unlock colors) without forcing users through an app-store update cycle, solved with the remote manifest system.",
     ],
     outcome: "Shipped and live on the App Store.",
     status: "Live",
@@ -51,7 +51,7 @@ export const projects = [
   },
   {
     slug: "jarvis",
-    name: "Jarvis — Legacy Command Center",
+    name: "Jarvis: Legacy Command Center",
     short: "Jarvis",
     tagline: "A multi-organization business platform running four real companies.",
     kind: "Internal business software",
@@ -73,7 +73,7 @@ export const projects = [
       "The interaction model for a server-side voice assistant (ElevenLabs text-to-speech with a browser-speech fallback).",
     ],
     built: [
-      "The full Next.js 15 / TypeScript / Tailwind application, with no traditional database — persistence runs on a mock-store-plus-Netlify-Blobs pattern.",
+      "The full Next.js 15 / TypeScript / Tailwind application, with no traditional database. Persistence runs on a mock-store-plus-Netlify-Blobs pattern.",
       "Live integrations with QuickBooks and an internal portal API.",
       "An authentication gate (signed-cookie session), added after finding the dashboard had shipped without one, exposing live client and payroll data to anonymous requests.",
     ],
@@ -118,7 +118,7 @@ export const projects = [
       "Two named lead-generation forms for separate service lines.",
     ],
     challenges: [
-      "Advised the owner (a scope call Sean made and the owner confirmed) to present drywall, paint, and flooring as repair-and-remodel support rather than standalone trade services, until licensing is confirmed — a compliance judgment, not just a design one.",
+      "Advised the owner (a scope call Sean made and the owner confirmed) to present drywall, paint, and flooring as repair-and-remodel support rather than standalone trade services until licensing is confirmed: a compliance judgment, not just a design one.",
       "Found an unauthenticated API endpoint exposing employee pay rates and contact information; flagged and scoped as a fix.",
     ],
     outcome: "Founded a company that scaled to 50+ workers; its public site and portal are live today.",
@@ -141,22 +141,22 @@ export const projects = [
     summary:
       "A retreat, traditional-healing, and rainforest-conservation project near Tarapoto, Peru, that Sean directs on the ground and whose bilingual site he built around a strict content-verification system.",
     whatItIs:
-      "A static, photography-led, English/Spanish site covering five retreats, a safety and ethics register, and the people who lead them — Sean among them.",
+      "A static, photography-led, English/Spanish site covering five retreats, a safety and ethics register, and the people who lead them, Sean among them.",
     whyItExisted:
-      "As Director of South America for the nonprofit Natural Worship, Sean needed a site that could serve international guests and donors without ever overstating what the program can verify — a real constraint in conservation and traditional-medicine spaces where claims are easy to overstate.",
+      "As Director of South America for the nonprofit Natural Worship, Sean needed a site that could serve international guests and donors without ever overstating what the program can verify, a real constraint in conservation and traditional-medicine spaces where claims are easy to overstate.",
     role_detail:
       "Directs the program's marketing, activities, and international partnerships, and is one of its four ceremony facilitators. Built the site itself.",
     designed: [
-      "A three-tier content-governance system (verified / source / proposed) so no conservation figure, price, or medical claim ships without confirmation — enforced by an automated audit script, not just a style guide.",
+      "A three-tier content-governance system (verified / source / proposed) so no conservation figure, price, or medical claim ships without confirmation, enforced by an automated audit script, not just a style guide.",
       "The five-retreat structure, the safety/ethics register, and the bilingual information architecture (translated, never machine-translated, for ceremonial and legal text).",
     ],
     built: [
       "An Astro 7 static site with a hand-written CSS token system and self-hosted variable fonts.",
-      "A media-provenance pipeline that labels every image as real photography, labeled atmosphere art, or a documented placeholder — so the site never passes off a stock photo as the real place.",
+      "A media-provenance pipeline that labels every image as real photography, labeled atmosphere art, or a documented placeholder, so the site never passes off a stock photo as the real place.",
       "A multilingual sitemap and per-page JavaScript splitting.",
     ],
     challenges: [
-      "Building a site for a real, physical, safety-sensitive program (jungle retreats, traditional medicine) where nearly every page could be tempted to embellish — solved by gating unverified sections behind feature flags until Qinty confirms them.",
+      "Building a site for a real, physical, safety-sensitive program (jungle retreats, traditional medicine) where nearly every page could be tempted to embellish, solved by gating unverified sections behind feature flags until Qinty confirms them.",
     ],
     outcome: "Site built and content-audited; retreat and conservation details await final confirmation before flags are switched on.",
     status: "Built, pre-launch",
@@ -178,21 +178,21 @@ export const projects = [
     summary:
       "A children's princess-party company Sean founded, brand and all: ten original characters designed to avoid any resemblance to protected IP, and a static site built around a single conversion goal.",
     whatItIs:
-      "A static Astro site where every page points at one action — check availability — for parents booking a birthday party.",
+      "A static Astro site built around one action for parents booking a birthday party: check availability.",
     whyItExisted:
       "Sean founded this as its own brand, and it needed an identity as distinctive as the character-licensed competitors it competes against, without borrowing anyone else's IP.",
     role_detail:
       "Founder, and designer/builder of the brand and the site.",
     designed: [
       "Ten original princess characters and a full visual system: an arch motif borrowed from castle windows, a gold 'invitation' hairline device around the booking flow, and a crown mark reused as the logo, favicon, and closing call-to-action.",
-      "A single-goal booking funnel that asks only for an age band for the child — no name, address, or photo — a privacy decision made explicit on the form itself.",
+      "A single-goal booking funnel that asks only for an age band for the child (no name, address, or photo), a privacy decision made explicit on the form itself.",
     ],
     built: [
       "A data-driven Astro site where adding a princess auto-populates her card, detail page, booking option, and sitemap entry.",
       "A full WCAG AA accessibility pass: labeled forms, 44px touch targets, visible focus states, and full support for reduced motion.",
     ],
     challenges: [
-      "Designing a fairy-tale brand with real visual richness while guaranteeing, in three places on the site, that none of it resembles a protected character — a constraint that shaped the character designs from the first sketch, not as a legal disclaimer bolted on after.",
+      "Designing a fairy-tale brand with real visual richness while guaranteeing, in three places on the site, that none of it resembles a protected character, a constraint that shaped the character designs from the first sketch, not as a legal disclaimer bolted on after.",
     ],
     outcome: "Site built and accessibility-checked; live launch pending final photography and a connected booking backend.",
     status: "Built, pre-launch",

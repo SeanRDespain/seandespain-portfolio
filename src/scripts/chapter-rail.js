@@ -1,6 +1,6 @@
 // Case-study chapter rail: highlights the active chapter as you scroll, and
 // scroll-to's on click. This is the "build line" made literal on a project
-// page — the same pipeline (problem -> thinking -> design -> build -> hard
+// page: the same pipeline (problem -> thinking -> design -> build -> hard
 // part -> outcome) that the homepage shows across five projects, applied to
 // one. Function, not decoration: it's both navigation and a progress signal.
 const rail = document.querySelector("[data-chapter-rail]");

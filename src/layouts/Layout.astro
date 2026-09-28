@@ -3,12 +3,12 @@ import "../styles/tokens.css";
 
 const {
   title,
-  description = "Sean Despain designs, builds, and launches digital products and brands — product, brand, and code from concept through launch.",
+  description = "Sean Despain designs, builds, and launches digital products and brands: product, brand, and code from concept through launch.",
   image = "/images/og-default.jpg",
   noindex = false,
 } = Astro.props;
 
-const pageTitle = title ? `${title} — Sean Despain` : "Sean Despain — Product Builder & Creative Technologist";
+const pageTitle = title ? `${title} · Sean Despain` : "Sean Despain · Product Builder & Creative Technologist";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
