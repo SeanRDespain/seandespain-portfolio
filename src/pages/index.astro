@@ -15,6 +15,12 @@ const capabilities = [
   <Header slot="header" />
 
   <section class="hero">
+    <div class="hero__aura" aria-hidden="true">
+      <span class="hero__aura-blob hero__aura-blob--1"></span>
+      <span class="hero__aura-blob hero__aura-blob--2"></span>
+      <span class="hero__aura-blob hero__aura-blob--3"></span>
+      <span class="hero__aura-blob hero__aura-blob--4"></span>
+    </div>
     <div class="container hero__inner">
       <p class="eyebrow" data-reveal>Product · Brand · Code</p>
       <h1 data-reveal data-reveal-delay="60">
@@ -126,9 +132,62 @@ const capabilities = [
 
 <style>
   .hero {
+    position: relative;
+    overflow: hidden;
     padding-block: var(--space-7) var(--space-6);
   }
-  .hero__inner { max-width: 46rem; }
+  .hero__aura {
+    position: absolute;
+    inset: -10% -10% -30% -10%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .hero__aura-blob {
+    position: absolute;
+    width: 42vw;
+    height: 42vw;
+    max-width: 620px;
+    max-height: 620px;
+    min-width: 340px;
+    min-height: 340px;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.32;
+    mix-blend-mode: multiply;
+    animation: auraDrift 26s ease-in-out infinite;
+  }
+  .hero__aura-blob--1 {
+    top: -12%; left: -6%;
+    background: var(--pl-gold);
+    animation-duration: 24s;
+  }
+  .hero__aura-blob--2 {
+    top: 4%; right: -10%;
+    background: var(--oup-lavender);
+    animation-duration: 30s;
+    animation-delay: -6s;
+  }
+  .hero__aura-blob--3 {
+    bottom: -14%; left: 18%;
+    background: var(--qinty-terracotta);
+    animation-duration: 34s;
+    animation-delay: -14s;
+  }
+  .hero__aura-blob--4 {
+    bottom: -6%; right: 12%;
+    background: color-mix(in srgb, var(--pl-teal) 55%, white 45%);
+    animation-duration: 28s;
+    animation-delay: -20s;
+  }
+  @keyframes auraDrift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(4%, 6%) scale(1.08); }
+    66% { transform: translate(-5%, -3%) scale(0.94); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__aura-blob { animation: none; }
+  }
+  .hero__inner { position: relative; z-index: 1; max-width: 46rem; }
   .hero h1 {
     font-family: var(--font-display);
     font-weight: 400;
@@ -228,8 +287,10 @@ const capabilities = [
     left: 50%;
     top: 0;
     bottom: 0;
-    width: 1px;
-    background: var(--line);
+    width: 2px;
+    background: linear-gradient(180deg,
+      var(--pl-gold), var(--jarvis-gold), var(--wip-gold), var(--qinty-terracotta), var(--oup-lavender));
+    opacity: 0.55;
     transform: translateX(-50%);
   }
   .reel__row { position: relative; scroll-margin-top: 5rem; }
@@ -295,8 +356,12 @@ const capabilities = [
   }
 
   .capabilities {
+    position: relative;
     padding-block: var(--space-6);
-    background: var(--paper-raised);
+    background:
+      radial-gradient(60% 90% at 8% 0%, color-mix(in srgb, var(--pl-gold) 14%, transparent), transparent 70%),
+      radial-gradient(55% 85% at 100% 100%, color-mix(in srgb, var(--oup-lavender) 16%, transparent), transparent 70%),
+      var(--paper-raised);
     border-block: 1px solid var(--line);
   }
   .capabilities__grid {
@@ -320,8 +385,14 @@ const capabilities = [
     border-bottom: 1px solid var(--ink);
   }
 
-  .about-teaser { padding-block: var(--space-7); }
-  .about-teaser__inner { max-width: 42rem; }
+  .about-teaser {
+    position: relative;
+    overflow: hidden;
+    padding-block: var(--space-7);
+    background: radial-gradient(48% 70% at 50% 40%,
+      color-mix(in srgb, var(--qinty-terracotta) 10%, transparent), transparent 72%);
+  }
+  .about-teaser__inner { position: relative; max-width: 42rem; }
   .about-teaser__quote {
     font-size: var(--step-3);
     line-height: 1.3;
