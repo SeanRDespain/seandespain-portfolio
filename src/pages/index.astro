@@ -10,12 +10,44 @@ const capabilities = [
   { label: "Brand & Creative", items: ["Visual identity systems", "Typography systems", "Original character/IP design", "Campaign production"] },
   { label: "Marketing", items: ["SEO", "GA4 & conversion tracking", "JSON-LD structured data", "Lead-generation funnels"] },
 ];
+
+// deterministic starfield — same build, same sky, so screenshots/QA are stable
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+}
+const rand = seededRandom(1337);
+const stars = Array.from({ length: 70 }).map((_, i) => {
+  const big = i % 11 === 0;
+  return {
+    top: (rand() * 100).toFixed(1),
+    left: (rand() * 100).toFixed(1),
+    size: big ? (1.6 + rand() * 1.1).toFixed(2) : (0.7 + rand() * 0.8).toFixed(2),
+    opacity: (big ? 0.55 : 0.25) + rand() * 0.4,
+    twinkle: i % 4 === 0,
+    delay: (rand() * 6).toFixed(2),
+    duration: (3 + rand() * 3).toFixed(2),
+  };
+});
 ---
 <Layout title="Product Builder & Creative Technologist">
   <Header slot="header" />
 
   <section class="hero">
     <div class="hero__aura" aria-hidden="true">
+      <span class="hero__stars">
+        {stars.map((s) => (
+          <span
+            class:list={["hero__star", s.twinkle && "hero__star--twinkle"]}
+            style={`top:${s.top}%; left:${s.left}%; width:${s.size}px; height:${s.size}px; opacity:${s.opacity.toFixed(2)}; animation-delay:${s.delay}s; animation-duration:${s.duration}s;`}
+          ></span>
+        ))}
+      </span>
+      <span class="hero__shooting-star hero__shooting-star--1"></span>
+      <span class="hero__shooting-star hero__shooting-star--2"></span>
       <span class="hero__aura-blob hero__aura-blob--1"></span>
       <span class="hero__aura-blob hero__aura-blob--2"></span>
       <span class="hero__aura-blob hero__aura-blob--3"></span>
@@ -152,6 +184,65 @@ const capabilities = [
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
+  }
+  .hero__stars { position: absolute; inset: 0; z-index: 0; }
+  .hero__star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fdf9ee;
+  }
+  .hero__star--twinkle { animation: starTwinkle 4s ease-in-out infinite; }
+  @keyframes starTwinkle {
+    0%, 100% { opacity: var(--star-o, 0.5); }
+    50% { opacity: 0.12; }
+  }
+  .hero__shooting-star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0;
+    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.85);
+    z-index: 1;
+  }
+  .hero__shooting-star::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    width: 110px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85));
+    transform: translateY(-50%);
+  }
+  .hero__shooting-star--1 {
+    top: 14%;
+    left: 8%;
+    animation: shoot1 13s linear infinite;
+    animation-delay: 3s;
+  }
+  .hero__shooting-star--2 {
+    top: 6%;
+    right: 22%;
+    animation: shoot2 17s linear infinite;
+    animation-delay: 9s;
+  }
+  @keyframes shoot1 {
+    0%, 6% { opacity: 0; translate: 0 0; rotate: -32deg; }
+    7% { opacity: 1; }
+    16% { opacity: 0; translate: 300px 200px; rotate: -32deg; }
+    100% { opacity: 0; translate: 300px 200px; rotate: -32deg; }
+  }
+  @keyframes shoot2 {
+    0%, 4% { opacity: 0; translate: 0 0; rotate: -18deg; }
+    5% { opacity: 1; }
+    12% { opacity: 0; translate: 260px 90px; rotate: -18deg; }
+    100% { opacity: 0; translate: 260px 90px; rotate: -18deg; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__star--twinkle { animation: none; }
+    .hero__shooting-star { display: none; }
   }
   .hero__aura-vignette {
     position: absolute;
