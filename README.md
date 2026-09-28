@@ -1,4 +1,4 @@
-# Sean Despain — Portfolio
+# Sean Despain: Portfolio
 
 Personal portfolio site: Astro static build, five case studies (Peace Life, Jarvis, W.I.P Services,
 Qinty, Once Upon a Princess) sourced from `src/data/projects.js`.
@@ -20,14 +20,14 @@ Opens on `http://localhost:4500`.
 
 ## Content model
 
-Everything project-related lives in `src/data/projects.js` — one object per venture, reused by both
+Everything project-related lives in `src/data/projects.js`, one object per venture, reused by both
 the homepage tiles and the `/work/[slug]/` case study pages. Edit that file to update copy; no page
 template needs to change. The full audit trail behind every claim in it is in
 `../sean-despain-career/evidence-map.md`.
 
 ## Design system
 
-Tokens in `src/styles/tokens.css`. The shell (ink / paper / graphite) stays neutral on purpose — each
+Tokens in `src/styles/tokens.css`. The shell (ink / paper / graphite) stays neutral on purpose: each
 project's card and case study carries its own accent color, sampled from that venture's real brand
 (Peace Life gold/teal, Jarvis and W.I.P gold/deep-green, Qinty forest/terracotta, Once Upon a Princess
 lavender/plum), never a color invented for this site.
@@ -36,13 +36,13 @@ Type: Instrument Serif (display/headlines), Public Sans (body), IBM Plex Mono (l
 
 ## Images
 
-Real screenshots only — no stock photography, no fabricated UI. Sources:
+Real screenshots only, no stock photography, no fabricated UI. Sources:
 - Peace Life: real App Store screenshot assets from the peacelifehealing.com repo, plus a live
   screenshot of the marketing site.
 - W.I.P Services, Qinty, Once Upon a Princess: live/local screenshots taken with Playwright
   (`shoot.mjs` + `process-images.mjs`, raw captures kept in `raw-assets/` and not deployed).
 - Jarvis: an existing sanitized smoke-test screenshot from the Jarvis repo, explicitly labeled
-  "Mock Data: Fallback" in the UI itself — the live product's real client/payroll data is never
+  "Mock Data: Fallback" in the UI itself. The live product's real client/payroll data is never
   shown here. See the note on the Jarvis case study page.
 
 ## Résumé
@@ -54,11 +54,6 @@ fits better.
 
 ## Deploying
 
-Not yet connected to a domain or Netlify site. To go live (matching the workflow used for the other
-sites in this account):
-
-1. `git init` (if not already), commit, push to a new GitHub repo (e.g. `SeanRDespain/seandespain-portfolio`).
-2. Create a new Netlify site from that repo. Build command `npm run build`, publish directory `dist`.
-3. Point `seandespain.com` at the Netlify site (Netlify's own DNS, or an A/ALIAS + CNAME at your
-   registrar), then add the custom domain in Netlify's site settings.
-4. Update `astro.config.mjs`'s `site` value if the final domain differs from `https://seandespain.com`.
+Live at seandespain.com and seandespainportfolio.netlify.app. Repo: `SeanRDespain/seandespain-portfolio`
+on GitHub, connected to Netlify (build command `npm run build`, publish directory `dist`), with
+`seandespain.com` on Netlify DNS. A push to `main` redeploys both URLs automatically.
