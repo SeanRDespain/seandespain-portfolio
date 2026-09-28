@@ -78,6 +78,10 @@ const capabilities = [
           data-reveal
         >
           <span class="reel__node" style={`--row-a:${project.accent.a};`} aria-hidden="true"></span>
+          <span class="reel__row-aura" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </span>
           <div class="container reel__row-inner">
             <a href={`/work/${project.slug}/`} class="reel__media">
               <img src={project.heroImage} alt="" loading="lazy" />
@@ -353,7 +357,7 @@ const capabilities = [
     opacity: 0.55;
     transform: translateX(-50%);
   }
-  .reel__row { position: relative; scroll-margin-top: 5rem; }
+  .reel__row { position: relative; overflow: hidden; scroll-margin-top: 5rem; }
   .reel__node {
     position: absolute;
     left: 50%;
@@ -365,7 +369,46 @@ const capabilities = [
     transform: translateX(-50%);
     z-index: 2;
   }
+  /* whisper-quiet version of the hero's opal shimmer: same drifting-blob
+     technique, each project's own two accents, kept just barely visible so
+     the real screenshots and copy stay the thing you're actually reading */
+  .reel__row-aura {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .reel__row-aura span {
+    position: absolute;
+    width: 24vw;
+    height: 24vw;
+    max-width: 320px;
+    max-height: 320px;
+    min-width: 160px;
+    min-height: 160px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.1;
+    animation: auraDrift 34s var(--ease-in-out) infinite;
+  }
+  .reel__row-aura span:first-child {
+    top: -16%; left: -8%;
+    background: color-mix(in srgb, var(--row-a) 65%, white 35%);
+  }
+  .reel__row-aura span:last-child {
+    bottom: -18%; right: -6%;
+    background: color-mix(in srgb, var(--row-b) 65%, white 35%);
+    animation-duration: 28s;
+    animation-delay: -12s;
+  }
+  .reel__row--reverse .reel__row-aura span:first-child { left: auto; right: -8%; }
+  .reel__row--reverse .reel__row-aura span:last-child { right: auto; left: -6%; }
+  @media (prefers-reduced-motion: reduce) {
+    .reel__row-aura span { animation: none; }
+  }
   .reel__row-inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-5);
