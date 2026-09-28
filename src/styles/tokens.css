@@ -60,17 +60,25 @@
      sections. derived from the same five real accents above, brightened
      via color-mix where needed, never a hue that isn't rooted in one of
      the ventures */
-  --opal-fire: var(--qinty-terracotta);
-  --opal-honey: var(--pl-gold);
   --opal-violet: var(--oup-lavender);
   --opal-jade: color-mix(in srgb, var(--qinty-forest) 55%, white 45%);
   --opal-sapphire: color-mix(in srgb, var(--oup-plum) 45%, var(--oup-lavender) 55%);
-  --opal-mint: color-mix(in srgb, var(--pl-teal) 55%, white 45%);
 
   /* matrix-green: brightened straight out of Peace Life's real teal so the
      hero's "code rain" ties back to the same palette instead of importing
      an unrelated neon green */
   --matrix-green: color-mix(in srgb, var(--pl-teal) 45%, #6bffa0 55%);
+
+  /* night sky: the hero's palette. Deep navy base, indigo and periwinkle
+     glows, cool blue-white light for text and stars */
+  --night-top: #1b2547;
+  --night-mid: #0e1530;
+  --night-deep: #060a18;
+  --night-indigo: #4f5bd5;
+  --night-violet: #7c6cf0;
+  --night-periwinkle: #a9b8ff;
+  --night-ice: #eef2ff;
+  --night-text: 226, 232, 255;
 
   /* motion system: named, not arbitrary. every animation on the site uses one of these */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);

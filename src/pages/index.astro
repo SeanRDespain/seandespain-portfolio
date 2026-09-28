@@ -29,6 +29,7 @@ const stars = Array.from({ length: 160 }).map((_, i) => {
     opacity: (big ? 0.8 : 0.5) + rand() * 0.4,
     twinkle: i % 3 !== 2,
     flare: big && i % 27 === 0,
+    tint: i % 5 === 0,
     delay: (rand() * 6).toFixed(2),
     duration: (3 + rand() * 3).toFixed(2),
   };
@@ -65,13 +66,14 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
 
   <section class="hero">
     <div class="hero__aura" aria-hidden="true">
-      <span class="hero__glow hero__glow--gold"></span>
+      <span class="hero__glow hero__glow--band"></span>
+      <span class="hero__glow hero__glow--indigo"></span>
       <span class="hero__glow hero__glow--teal"></span>
       <span class="hero__stars">
         {stars.map((s) => (
           <span
-            class:list={["hero__star", s.twinkle && "hero__star--twinkle", s.flare && "hero__star--flare"]}
-            style={`top:${s.top}%; left:${s.left}%; width:${s.size}px; height:${s.size}px; opacity:${s.opacity.toFixed(2)}; animation-delay:${s.delay}s; animation-duration:${s.duration}s;`}
+            class:list={["hero__star", s.twinkle && "hero__star--twinkle", s.flare && "hero__star--flare", s.tint && "hero__star--tint"]}
+            style={`top:${s.top}%; left:${s.left}%; width:${s.size}px; height:${s.size}px; opacity:${s.opacity.toFixed(2)}; --star-o:${s.opacity.toFixed(2)}; animation-delay:${s.delay}s; animation-duration:${s.duration}s;`}
           ></span>
         ))}
       </span>
@@ -205,7 +207,7 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   .hero {
     position: relative;
     overflow: hidden;
-    background: radial-gradient(130% 100% at 22% 0%, #262b33 0%, #16181d 55%, #0d0e11 100%);
+    background: radial-gradient(130% 100% at 22% 0%, var(--night-top) 0%, var(--night-mid) 55%, var(--night-deep) 100%);
     padding-block: var(--space-7) var(--space-6);
   }
   .hero__aura {
@@ -218,11 +220,12 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   .hero__aura-vignette {
     position: absolute;
     inset: 0;
-    background: radial-gradient(85% 75% at 50% 35%, transparent 45%, rgba(6, 7, 8, 0.5) 100%);
+    background: radial-gradient(85% 75% at 50% 35%, transparent 45%, rgba(3, 5, 14, 0.55) 100%);
     z-index: 1;
   }
-  /* two quiet, slow-drifting glows: the whole "signature moment" for the
-     hero. No literal theme, no texture, just calm depth and color. */
+  /* slow-drifting glows: an indigo nebula top-right, a teal one bottom-left,
+     and a soft diagonal band between them, like the Milky Way crossing the
+     sky. Calm depth and color, nothing literal. */
   .hero__glow {
     position: absolute;
     border-radius: 50%;
@@ -231,7 +234,7 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     opacity: 0.3;
     animation: glowDrift 42s var(--ease-in-out) infinite;
   }
-  .hero__glow--gold {
+  .hero__glow--indigo {
     top: -18%;
     right: -12%;
     width: 46vw;
@@ -240,7 +243,21 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     max-height: 620px;
     min-width: 340px;
     min-height: 340px;
-    background: var(--pl-gold);
+    background: var(--night-indigo);
+    opacity: 0.42;
+  }
+  .hero__glow--band {
+    top: 8%;
+    left: -10%;
+    width: 120%;
+    height: 34%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--night-violet), color-mix(in srgb, var(--night-indigo) 60%, transparent) 55%, transparent);
+    rotate: -14deg;
+    filter: blur(70px);
+    opacity: 0.22;
+    animation-duration: 60s;
+    animation-delay: -30s;
   }
   .hero__glow--teal {
     bottom: -22%;
@@ -251,8 +268,8 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     max-height: 540px;
     min-width: 300px;
     min-height: 300px;
-    background: color-mix(in srgb, var(--pl-teal) 55%, #0d0e11 45%);
-    opacity: 0.34;
+    background: color-mix(in srgb, var(--pl-teal) 60%, #1e5a8a 40%);
+    opacity: 0.38;
     animation-duration: 50s;
     animation-delay: -18s;
   }
@@ -267,8 +284,9 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   .hero__star {
     position: absolute;
     border-radius: 50%;
-    background: #fdf9ee;
+    background: var(--night-ice);
   }
+  .hero__star--tint { background: var(--night-periwinkle); }
   .hero__star--twinkle { animation: starTwinkle 4s ease-in-out infinite; }
   @keyframes starTwinkle {
     0%, 100% { opacity: var(--star-o, 0.5); scale: 1; }
@@ -282,14 +300,14 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     position: absolute;
     top: 50%;
     left: 50%;
-    background: linear-gradient(90deg, transparent, rgba(253, 249, 238, 0.75), transparent);
+    background: linear-gradient(90deg, transparent, rgba(var(--night-text), 0.8), transparent);
     translate: -50% -50%;
   }
   .hero__star--flare::before { width: 24px; height: 1px; }
   .hero__star--flare::after {
     width: 1px;
     height: 24px;
-    background: linear-gradient(180deg, transparent, rgba(253, 249, 238, 0.75), transparent);
+    background: linear-gradient(180deg, transparent, rgba(var(--night-text), 0.8), transparent);
   }
   .hero__shooting-star {
     position: absolute;
@@ -403,16 +421,22 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     .hero__matrix { display: none; }
   }
   .hero__inner { position: relative; z-index: 3; max-width: 46rem; }
-  .hero .eyebrow { color: rgba(255, 244, 224, 0.65); }
+  .hero .eyebrow { color: rgba(var(--night-text), 0.62); }
   .hero h1 {
     font-family: var(--font-display);
     font-weight: 400;
     font-size: var(--step-5);
     line-height: 1.05;
-    color: #fbf6ec;
+    color: var(--night-ice);
     margin: 0.5rem 0 var(--space-3);
   }
-  .hero h1 .serif-italic { color: #f3b53d; }
+  .hero h1 .serif-italic {
+    color: var(--night-periwinkle);
+    background: linear-gradient(100deg, #b9c7ff 0%, var(--night-periwinkle) 45%, #b3a4ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
   .hero__pipeline {
     display: flex;
     flex-wrap: wrap;
@@ -420,25 +444,25 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     gap: 0.5rem;
     font-family: var(--font-mono);
     font-size: var(--step--1);
-    color: rgba(255, 244, 224, 0.55);
+    color: rgba(var(--night-text), 0.55);
     margin: 0 0 var(--space-3);
   }
   .hero__pipeline-word-wrap {
     display: inline-block;
     min-width: 4.5em;
-    color: #fbf6ec;
+    color: var(--night-ice);
     font-weight: 500;
   }
   html:not(.js) .hero__pipeline-word-wrap { display: none; }
   .hero__sub {
-    color: rgba(255, 244, 224, 0.72);
+    color: rgba(var(--night-text), 0.74);
     font-size: var(--step-1);
     max-width: 42rem;
   }
-  .hero .btn--primary { background: #fbf6ec; color: #17120b; border-color: #fbf6ec; }
-  .hero .btn--primary:hover { background: #f3b53d; border-color: #f3b53d; }
-  .hero .btn--ghost { color: #fbf6ec; border-color: rgba(255, 244, 224, 0.5); }
-  .hero .btn--ghost:hover { background: rgba(255, 244, 224, 0.12); }
+  .hero .btn--primary { background: var(--night-ice); color: var(--night-deep); border-color: var(--night-ice); }
+  .hero .btn--primary:hover { background: var(--night-periwinkle); border-color: var(--night-periwinkle); }
+  .hero .btn--ghost { color: var(--night-ice); border-color: rgba(var(--night-text), 0.45); }
+  .hero .btn--ghost:hover { background: rgba(var(--night-text), 0.1); }
   .hero__ctas {
     display: flex;
     gap: var(--space-2);
@@ -476,9 +500,9 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     align-items: center;
     gap: 0.4rem;
     text-decoration: none;
-    color: rgba(255, 244, 224, 0.6);
+    color: rgba(var(--night-text), 0.6);
   }
-  .hero__stamps a:hover { color: #fbf6ec; }
+  .hero__stamps a:hover { color: var(--night-ice); }
   .hero__stamp-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
@@ -500,7 +524,7 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     position: relative;
     padding-block: var(--space-6);
     background:
-      radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--opal-honey) 6%, transparent), transparent 75%),
+      radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--night-indigo) 7%, transparent), transparent 75%),
       var(--paper);
   }
   .reel__spine {
@@ -626,7 +650,7 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     position: relative;
     padding-block: var(--space-6);
     background:
-      radial-gradient(55% 85% at 6% -10%, color-mix(in srgb, var(--opal-honey) 16%, transparent), transparent 70%),
+      radial-gradient(55% 85% at 6% -10%, color-mix(in srgb, var(--night-indigo) 12%, transparent), transparent 70%),
       radial-gradient(50% 80% at 100% 10%, color-mix(in srgb, var(--opal-sapphire) 14%, transparent), transparent 70%),
       radial-gradient(55% 85% at 90% 110%, color-mix(in srgb, var(--opal-violet) 16%, transparent), transparent 70%),
       var(--paper-raised);
@@ -658,7 +682,7 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     overflow: hidden;
     padding-block: var(--space-7);
     background:
-      radial-gradient(45% 70% at 30% 30%, color-mix(in srgb, var(--opal-fire) 9%, transparent), transparent 72%),
+      radial-gradient(45% 70% at 30% 30%, color-mix(in srgb, var(--night-periwinkle) 14%, transparent), transparent 72%),
       radial-gradient(45% 70% at 75% 65%, color-mix(in srgb, var(--opal-jade) 10%, transparent), transparent 72%);
   }
   .about-teaser__inner { position: relative; max-width: 42rem; }
