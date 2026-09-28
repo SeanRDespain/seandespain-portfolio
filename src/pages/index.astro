@@ -10,56 +10,14 @@ const capabilities = [
   { label: "Brand & Creative", items: ["Visual identity systems", "Typography systems", "Original character/IP design", "Campaign production"] },
   { label: "Marketing", items: ["SEO", "GA4 & conversion tracking", "JSON-LD structured data", "Lead-generation funnels"] },
 ];
-
-// deterministic starfield — same build, same sky, so screenshots/QA are stable
-function seededRandom(seed) {
-  let s = seed;
-  return () => {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    return s / 0x7fffffff;
-  };
-}
-const rand = seededRandom(1337);
-const stars = Array.from({ length: 140 }).map((_, i) => {
-  const big = i % 8 === 0;
-  return {
-    top: (rand() * 100).toFixed(1),
-    left: (rand() * 100).toFixed(1),
-    size: big ? (1.8 + rand() * 1.4).toFixed(2) : (0.8 + rand() * 1).toFixed(2),
-    opacity: (big ? 0.7 : 0.4) + rand() * 0.45,
-    twinkle: i % 3 === 0,
-    delay: (rand() * 6).toFixed(2),
-    duration: (3 + rand() * 3).toFixed(2),
-  };
-});
 ---
 <Layout title="Product Builder & Creative Technologist">
   <Header slot="header" />
 
   <section class="hero">
     <div class="hero__aura" aria-hidden="true">
-      <span class="hero__stars">
-        {stars.map((s) => (
-          <span
-            class:list={["hero__star", s.twinkle && "hero__star--twinkle"]}
-            style={`top:${s.top}%; left:${s.left}%; width:${s.size}px; height:${s.size}px; opacity:${s.opacity.toFixed(2)}; animation-delay:${s.delay}s; animation-duration:${s.duration}s;`}
-          ></span>
-        ))}
-      </span>
-      <span class="hero__shooting-star hero__shooting-star--1"></span>
-      <span class="hero__shooting-star hero__shooting-star--2"></span>
-      <span class="hero__shooting-star hero__shooting-star--3"></span>
-      <span class="hero__aura-blob hero__aura-blob--1"></span>
-      <span class="hero__aura-blob hero__aura-blob--2"></span>
-      <span class="hero__aura-blob hero__aura-blob--3"></span>
-      <span class="hero__aura-blob hero__aura-blob--4"></span>
-      <span class="hero__aura-blob hero__aura-blob--5"></span>
-      <span class="hero__aura-blob hero__aura-blob--6"></span>
-      <span class="hero__facets" aria-hidden="true"></span>
-      <span class="hero__glint hero__glint--1"></span>
-      <span class="hero__glint hero__glint--2"></span>
-      <span class="hero__glint hero__glint--3"></span>
-      <span class="hero__aura-sheen"></span>
+      <span class="hero__glow hero__glow--gold"></span>
+      <span class="hero__glow hero__glow--teal"></span>
       <span class="hero__aura-vignette"></span>
     </div>
     <div class="container hero__inner">
@@ -179,8 +137,7 @@ const stars = Array.from({ length: 140 }).map((_, i) => {
   .hero {
     position: relative;
     overflow: hidden;
-    background:
-      radial-gradient(120% 90% at 50% 15%, #3c2c18 0%, #21160e 48%, #120d0a 100%);
+    background: radial-gradient(130% 100% at 22% 0%, #262b33 0%, #16181d 55%, #0d0e11 100%);
     padding-block: var(--space-7) var(--space-6);
   }
   .hero__aura {
@@ -190,202 +147,53 @@ const stars = Array.from({ length: 140 }).map((_, i) => {
     pointer-events: none;
     overflow: hidden;
   }
-  .hero__stars { position: absolute; inset: 0; z-index: 0; }
-  .hero__star {
-    position: absolute;
-    border-radius: 50%;
-    background: #fdf9ee;
-  }
-  .hero__star--twinkle { animation: starTwinkle 4s ease-in-out infinite; }
-  @keyframes starTwinkle {
-    0%, 100% { opacity: var(--star-o, 0.5); }
-    50% { opacity: 0.12; }
-  }
-  .hero__shooting-star {
-    position: absolute;
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: #fff;
-    opacity: 0;
-    box-shadow: 0 0 10px 3px rgba(255, 255, 255, 1), 0 0 26px 8px rgba(255, 255, 255, 0.45);
-    z-index: 5;
-  }
-  .hero__shooting-star::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: 0;
-    width: 200px;
-    height: 2px;
-    transform: translateY(-50%);
-    clip-path: polygon(0% 50%, 100% 0%, 100% 100%);
-    background: linear-gradient(90deg,
-      transparent 0%, rgba(255, 255, 255, 0.04) 45%, rgba(255, 255, 255, 0.45) 78%, rgba(255, 255, 255, 0.95) 100%);
-  }
-  .hero__shooting-star--1 {
-    top: 12%;
-    left: 6%;
-    animation: shoot1 14s cubic-bezier(0.16, 0.6, 0.35, 1) infinite;
-    animation-delay: 2.4s;
-  }
-  .hero__shooting-star--2 {
-    top: 4%;
-    right: 24%;
-    animation: shoot2 19s cubic-bezier(0.16, 0.6, 0.35, 1) infinite;
-    animation-delay: 8s;
-  }
-  .hero__shooting-star--3 {
-    top: 28%;
-    left: 48%;
-    animation: shoot3 23s cubic-bezier(0.16, 0.6, 0.35, 1) infinite;
-    animation-delay: 15s;
-  }
-  @keyframes shoot1 {
-    0%, 5% { opacity: 0; translate: 0 0; rotate: -30deg; }
-    6% { opacity: 1; }
-    10% { opacity: 1; }
-    13% { opacity: 0; translate: 360px 220px; rotate: -30deg; }
-    100% { opacity: 0; translate: 360px 220px; rotate: -30deg; }
-  }
-  @keyframes shoot2 {
-    0%, 3% { opacity: 0; translate: 0 0; rotate: -16deg; }
-    4% { opacity: 1; }
-    7% { opacity: 1; }
-    9.5% { opacity: 0; translate: 300px 90px; rotate: -16deg; }
-    100% { opacity: 0; translate: 300px 90px; rotate: -16deg; }
-  }
-  @keyframes shoot3 {
-    0%, 4% { opacity: 0; translate: 0 0; rotate: -42deg; }
-    5% { opacity: 1; }
-    8% { opacity: 1; }
-    11% { opacity: 0; translate: 260px 240px; rotate: -42deg; }
-    100% { opacity: 0; translate: 260px 240px; rotate: -42deg; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .hero__star--twinkle { animation: none; }
-    .hero__shooting-star { display: none; }
-  }
   .hero__aura-vignette {
     position: absolute;
     inset: 0;
-    background: radial-gradient(85% 75% at 50% 35%, transparent 40%, rgba(8, 6, 4, 0.55) 100%);
-    z-index: 2;
-  }
-  .hero__aura-sheen {
-    position: absolute;
-    inset: -20% -40%;
-    background: linear-gradient(115deg,
-      transparent 35%, rgba(255, 246, 220, 0.16) 48%, rgba(255, 246, 220, 0.28) 50%, rgba(255, 246, 220, 0.16) 52%, transparent 65%);
-    background-size: 220% 220%;
-    animation: sheenSweep 9s var(--ease-in-out) infinite;
+    background: radial-gradient(85% 75% at 50% 35%, transparent 45%, rgba(6, 7, 8, 0.5) 100%);
     z-index: 1;
   }
-  @keyframes sheenSweep {
-    0% { background-position: 120% -20%; }
-    50% { background-position: -20% 120%; }
-    100% { background-position: 120% -20%; }
-  }
-  .hero__aura-blob {
+  /* two quiet, slow-drifting glows — the whole "signature moment" for the
+     hero. No literal theme, no texture, just calm depth and color. */
+  .hero__glow {
     position: absolute;
-    width: 26vw;
-    height: 26vw;
-    max-width: 360px;
-    max-height: 360px;
-    min-width: 200px;
-    min-height: 200px;
     border-radius: 50%;
-    filter: blur(34px);
-    opacity: 0.4;
+    filter: blur(90px);
     mix-blend-mode: screen;
-    animation: auraDrift 22s var(--ease-in-out) infinite, auraShimmer 5s ease-in-out infinite;
+    opacity: 0.3;
+    animation: glowDrift 42s var(--ease-in-out) infinite;
   }
-  .hero__aura-blob--1 {
-    top: -8%; left: -4%;
-    background: #f3b53d;
-    animation-duration: 21s, 4.6s;
+  .hero__glow--gold {
+    top: -18%;
+    right: -12%;
+    width: 46vw;
+    height: 46vw;
+    max-width: 620px;
+    max-height: 620px;
+    min-width: 340px;
+    min-height: 340px;
+    background: var(--pl-gold);
   }
-  .hero__aura-blob--2 {
-    top: -14%; right: -8%;
-    width: 22vw; height: 22vw; max-width: 320px; max-height: 320px;
-    background: #e94fb0;
-    clip-path: polygon(22% 0%, 78% 8%, 100% 55%, 68% 100%, 15% 92%, 0% 42%);
-    animation-duration: 27s, 6.2s;
-    animation-delay: -6s, -1s;
+  .hero__glow--teal {
+    bottom: -22%;
+    left: -14%;
+    width: 40vw;
+    height: 40vw;
+    max-width: 540px;
+    max-height: 540px;
+    min-width: 300px;
+    min-height: 300px;
+    background: color-mix(in srgb, var(--pl-teal) 55%, #0d0e11 45%);
+    opacity: 0.34;
+    animation-duration: 50s;
+    animation-delay: -18s;
   }
-  .hero__aura-blob--3 {
-    bottom: -14%; left: 10%;
-    background: #ff6a2e;
-    animation-duration: 31s, 5.4s;
-    animation-delay: -13s, -3s;
-  }
-  .hero__aura-blob--4 {
-    bottom: -10%; right: 6%;
-    background: #14e0b4;
-    animation-duration: 25s, 6.8s;
-    animation-delay: -19s, -4.5s;
-  }
-  .hero__aura-blob--5 {
-    top: 30%; left: 38%;
-    width: 20vw; height: 20vw; max-width: 280px; max-height: 280px; min-width: 170px; min-height: 170px;
-    background: #22c55e;
-    clip-path: polygon(32% 0%, 100% 22%, 92% 82%, 46% 100%, 0% 58%);
-    animation-duration: 29s, 6.5s;
-    animation-delay: -9s, -2s;
-  }
-  .hero__aura-blob--6 {
-    top: 6%; right: 30%;
-    width: 18vw; height: 18vw; max-width: 240px; max-height: 240px; min-width: 150px; min-height: 150px;
-    background: #4f8bf7;
-    animation-duration: 33s, 7.5s;
-    animation-delay: -24s, -5.5s;
-  }
-  @keyframes auraDrift {
+  @keyframes glowDrift {
     0%, 100% { translate: 0 0; scale: 1; }
-    33% { translate: 4% 6%; scale: 1.15; }
-    66% { translate: -5% -3%; scale: 0.88; }
-  }
-  @keyframes auraShimmer {
-    0%, 100% { opacity: 0.24; }
-    50% { opacity: 0.46; }
-  }
-  /* faceted crystal texture: three overlapping hairline grids at different
-     angles, so the color reads as light passing through cut facets rather
-     than a flat painted wash */
-  .hero__facets {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    opacity: 0.55;
-    mix-blend-mode: overlay;
-    background:
-      repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 40px),
-      repeating-linear-gradient(35deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 54px),
-      repeating-linear-gradient(-24deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 48px);
-  }
-  .hero__glint {
-    position: absolute;
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: #fff;
-    opacity: 0;
-    box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.9), 0 0 18px 7px rgba(255, 255, 255, 0.4);
-    z-index: 2;
-    animation: glintFlash 7s ease-in-out infinite;
-  }
-  .hero__glint--1 { top: 20%; left: 27%; animation-delay: 0.8s; }
-  .hero__glint--2 { top: 58%; right: 18%; animation-delay: 3.6s; animation-duration: 8.5s; }
-  .hero__glint--3 { top: 34%; left: 56%; animation-delay: 6s; animation-duration: 9.5s; }
-  @keyframes glintFlash {
-    0%, 90%, 100% { opacity: 0; scale: 0.6; }
-    94% { opacity: 1; scale: 1.5; }
-    97% { opacity: 0.25; scale: 1; }
+    50% { translate: 3% 4%; scale: 1.08; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hero__aura-blob { animation: none; opacity: 0.34; }
-    .hero__aura-sheen { animation: none; background-position: 50% 50%; }
-    .hero__glint { display: none; }
+    .hero__glow { animation: none; }
   }
   .hero__inner { position: relative; z-index: 3; max-width: 46rem; }
   .hero .eyebrow { color: rgba(255, 244, 224, 0.65); }
