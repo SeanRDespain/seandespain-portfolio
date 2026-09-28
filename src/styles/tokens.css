@@ -55,6 +55,15 @@
   --oup-lavender: #9c86c9;
   --oup-plum: #2e1f3b;
   --oup-gold: #c9a227;
+
+  /* motion system — named, not arbitrary. every animation on the site uses one of these */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;      /* hover/focus feedback */
+  --dur-standard: 320ms;  /* UI state changes, tile lift */
+  --dur-reveal: 620ms;    /* section/content entrances */
+  --dur-narrative: 900ms; /* hero + chapter-scale storytelling moments */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -135,3 +144,30 @@ textarea:focus-visible {
   transition: top 0.15s ease;
 }
 .skip-link:focus { top: var(--space-3); }
+
+/* ---- reveal-on-scroll: opacity/transform only, gated by IntersectionObserver in reveal.js ---- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--dur-reveal) var(--ease-out), transform var(--dur-reveal) var(--ease-out);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+/* no-JS fallback: never hide content behind a script that might not run */
+html:not(.js) [data-reveal] { opacity: 1; transform: none; }
+
+/* ---- the build line: the site's one recurring motion device ---- */
+.build-line {
+  --line-color: var(--line);
+  position: relative;
+}
+.build-line::before {
+  content: "";
+  position: absolute;
+  background: var(--line-color);
+}

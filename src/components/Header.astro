@@ -1,10 +1,11 @@
 ---
+const path = Astro.url.pathname;
 const nav = [
-  { href: "/#work", label: "Work" },
-  { href: "/about/", label: "About" },
-  { href: "/capabilities/", label: "Capabilities" },
-  { href: "/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx", label: "Resume" },
-  { href: "/contact/", label: "Contact" },
+  { href: "/#work", label: "Work", match: (p) => p === "/" },
+  { href: "/about/", label: "About", match: (p) => p.startsWith("/about") },
+  { href: "/capabilities/", label: "Capabilities", match: (p) => p.startsWith("/capabilities") },
+  { href: "/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx", label: "Resume", match: () => false },
+  { href: "/contact/", label: "Contact", match: (p) => p.startsWith("/contact") },
 ];
 ---
 <header class="site-header">
@@ -13,7 +14,7 @@ const nav = [
     <nav aria-label="Primary" class="site-header__navwrap">
       <ul class="site-header__nav">
         {nav.map((item) => (
-          <li><a href={item.href}>{item.label}</a></li>
+          <li><a href={item.href} aria-current={item.match(path) ? "page" : undefined}>{item.label}</a></li>
         ))}
       </ul>
     </nav>
@@ -62,6 +63,7 @@ const nav = [
     white-space: nowrap;
   }
   .site-header__nav a:hover { border-bottom-color: var(--ink); }
+  .site-header__nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
 
   @media (max-width: 860px) {
     .site-header__row { justify-content: flex-start; }

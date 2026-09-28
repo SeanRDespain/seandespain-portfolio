@@ -7,6 +7,7 @@ export const projects = [
   {
     slug: "peace-life",
     name: "Peace Life",
+    short: "Peace Life",
     tagline: "A 140-scene guided wellness app, live on the App Store.",
     kind: "App + marketing site",
     years: "2021–Present",
@@ -38,6 +39,7 @@ export const projects = [
       "Keeping post-launch content editable (copy, images, unlock colors) without forcing users through an app-store update cycle — solved with the remote manifest system.",
     ],
     outcome: "Shipped and live on the App Store.",
+    status: "Live",
     tech: ["Unity", "C#", "Firebase", "HTML/CSS/JS", "Netlify", "GA4", "JSON-LD"],
     images: [
       { src: "/images/peace-life/site-hero.jpg", alt: "Peace Life marketing site hero: 'Reiki, meditation, and chakra practice. Every day.'" },
@@ -50,6 +52,7 @@ export const projects = [
   {
     slug: "jarvis",
     name: "Jarvis — Legacy Command Center",
+    short: "Jarvis",
     tagline: "A multi-organization business platform running four real companies.",
     kind: "Internal business software",
     years: "2025–Present",
@@ -79,6 +82,7 @@ export const projects = [
       "Root-caused a production-only React rendering crash to a server (UTC) vs. browser (local) timezone mismatch in date formatting, and fixed the underlying formatting layer rather than patching each symptom.",
     ],
     outcome: "Deployed and in active use, with live QuickBooks and internal-portal integrations connected.",
+    status: "Live",
     tech: ["Next.js 15", "TypeScript", "Tailwind CSS", "Netlify Blobs", "QuickBooks API", "ElevenLabs API"],
     images: [
       { src: "/images/jarvis/dashboard-mock.jpg", alt: "Jarvis command center dashboard (sanitized demo data)" },
@@ -89,6 +93,7 @@ export const projects = [
   {
     slug: "wip-services",
     name: "W.I.P Services",
+    short: "W.I.P Services",
     tagline: "A 50-person staffing company, and the digital systems built to run it.",
     kind: "Company founded + website & internal tools",
     years: "2017–Present",
@@ -117,6 +122,7 @@ export const projects = [
       "Found an unauthenticated API endpoint exposing employee pay rates and contact information; flagged and scoped as a fix.",
     ],
     outcome: "Founded a company that scaled to 50+ workers; its public site and portal are live today.",
+    status: "Live",
     tech: ["Node.js", "Netlify Forms", "vanilla HTML/CSS/JS", "image optimization pipeline"],
     images: [
       { src: "/images/wip-services/site-hero.jpg", alt: "W.I.P Services homepage: 'Construction cleaning and jobsite labor for Utah builders'" },
@@ -126,6 +132,7 @@ export const projects = [
   {
     slug: "qinty",
     name: "Organización Qinty",
+    short: "Qinty",
     tagline: "A bilingual retreat and conservation site with zero unverified claims.",
     kind: "Bilingual program site",
     years: "2026",
@@ -152,6 +159,7 @@ export const projects = [
       "Building a site for a real, physical, safety-sensitive program (jungle retreats, traditional medicine) where nearly every page could be tempted to embellish — solved by gating unverified sections behind feature flags until Qinty confirms them.",
     ],
     outcome: "Site built and content-audited; retreat and conservation details await final confirmation before flags are switched on.",
+    status: "Built, pre-launch",
     tech: ["Astro", "hand-written CSS", "self-hosted variable fonts", "i18n routing"],
     images: [
       { src: "/images/qinty/home-hero.jpg", alt: "Qinty homepage: aerial drone photograph of the Amazon rainforest canopy above the retreat" },
@@ -161,6 +169,7 @@ export const projects = [
   {
     slug: "once-upon-a-princess",
     name: "Once Upon a Princess",
+    short: "Once Upon a Princess",
     tagline: "Ten original characters and a booking funnel built around one goal.",
     kind: "Brand + booking site",
     years: "2026",
@@ -186,6 +195,7 @@ export const projects = [
       "Designing a fairy-tale brand with real visual richness while guaranteeing, in three places on the site, that none of it resembles a protected character — a constraint that shaped the character designs from the first sketch, not as a legal disclaimer bolted on after.",
     ],
     outcome: "Site built and accessibility-checked; live launch pending final photography and a connected booking backend.",
+    status: "Built, pre-launch",
     tech: ["Astro", "inline SVG illustration", "WCAG AA accessibility pass"],
     images: [
       { src: "/images/once-upon-a-princess/home-hero.jpg", alt: "Once Upon a Princess homepage hero with the illustrated castle mark" },

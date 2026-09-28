@@ -2,103 +2,191 @@
 import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
+import { projects } from "../../data/projects.js";
 
 const groups = [
   {
     label: "Product",
-    items: ["Product architecture", "User flows & progression systems", "Information architecture", "Freemium/paywall design", "Booking & conversion funnels", "Multi-organization system design"],
-    tools: ["Figma-style prototyping to shipped UI", "Astro & static-site architecture", "Content-governance systems"],
+    items: [
+      { text: "Product architecture", projects: ["jarvis", "peace-life"] },
+      { text: "User flows & progression systems", projects: ["peace-life", "once-upon-a-princess"] },
+      { text: "Information architecture", projects: ["jarvis", "qinty"] },
+      { text: "Freemium/paywall design", projects: ["peace-life"] },
+      { text: "Booking & conversion funnels", projects: ["once-upon-a-princess", "wip-services"] },
+      { text: "Multi-organization system design", projects: ["jarvis"] },
+    ],
+    tools: ["Astro & static-site architecture", "Content-governance systems"],
   },
   {
     label: "Development",
-    items: ["Unity (C#)", "Firebase (Auth, Realtime Database)", "Next.js / React / TypeScript", "Tailwind CSS", "Astro", "Node.js", "iOS build & App Store release", "Android/Gradle builds", "API integrations"],
-    tools: ["Git/GitHub", "Netlify (deploy, Forms, Blobs)", "QuickBooks API", "ElevenLabs API", "OpenAI API", "i18n/bilingual routing", "ffmpeg media pipelines"],
+    items: [
+      { text: "Unity (C#)", projects: ["peace-life"] },
+      { text: "Firebase (Auth, Realtime Database)", projects: ["peace-life"] },
+      { text: "Next.js / React / TypeScript", projects: ["jarvis"] },
+      { text: "Astro", projects: ["qinty", "once-upon-a-princess"] },
+      { text: "Node.js", projects: ["wip-services"] },
+      { text: "iOS build & App Store release", projects: ["peace-life"] },
+      { text: "API integrations", projects: ["jarvis"] },
+    ],
+    tools: ["Tailwind CSS", "Android/Gradle builds", "Git/GitHub", "Netlify (deploy, Forms, Blobs)", "QuickBooks API", "ElevenLabs API", "i18n/bilingual routing", "ffmpeg pipelines"],
   },
   {
     label: "Brand & Creative",
-    items: ["Visual identity systems", "Typography systems", "Original character/IP design", "Campaign asset production", "Art direction"],
+    items: [
+      { text: "Visual identity systems", projects: ["peace-life", "once-upon-a-princess", "qinty"] },
+      { text: "Typography systems", projects: ["peace-life", "qinty", "once-upon-a-princess"] },
+      { text: "Original character/IP design", projects: ["once-upon-a-princess"] },
+      { text: "Campaign asset production", projects: ["peace-life"] },
+      { text: "Art direction", projects: ["peace-life", "once-upon-a-princess"] },
+    ],
     tools: ["Adobe Photoshop", "Adobe Illustrator", "3D animation"],
   },
   {
     label: "Marketing & Growth",
-    items: ["SEO", "GA4 & conversion-event tracking", "JSON-LD structured data", "Social/OG cards", "Lead-generation funnels", "Content-verification governance"],
-    tools: ["Google Ads", "Social media strategy"],
+    items: [
+      { text: "SEO", projects: ["peace-life", "wip-services"] },
+      { text: "GA4 & conversion-event tracking", projects: ["peace-life"] },
+      { text: "JSON-LD structured data", projects: ["peace-life"] },
+      { text: "Lead-generation funnels", projects: ["wip-services"] },
+      { text: "Content-verification governance", projects: ["qinty", "once-upon-a-princess"] },
+    ],
+    tools: ["Google Ads", "Social media strategy", "Social/OG cards"],
   },
   {
     label: "Business & Operations",
-    items: ["Team building & leadership (50+ contractors/employees)", "Payroll & workforce operations", "Financial strategy & investor relations", "Nonprofit program direction", "Vendor & scope judgment"],
+    items: [
+      { text: "Team building & leadership (50+ contractors/employees)", projects: ["wip-services"] },
+      { text: "Payroll & workforce operations", projects: ["wip-services", "jarvis"] },
+      { text: "Nonprofit program direction", projects: ["qinty"] },
+      { text: "Vendor & scope judgment", projects: ["wip-services"] },
+    ],
     tools: [],
   },
 ];
 ---
-<Layout title="Capabilities" description="Sean Despain's capabilities across product, development, brand, marketing, and business — organized by category, backed by real projects.">
+<Layout title="Capabilities" description="Sean Despain's capabilities across product, development, brand, marketing, and business — click any capability to see the real project that proves it.">
   <Header slot="header" />
 
   <section class="cap">
     <div class="container cap__inner">
-      <p class="eyebrow">Capabilities</p>
-      <h1>Organized by what it's for, not by logo count.</h1>
-      <p class="cap__intro">
-        Every line here traces back to a project on the <a href="/#work">work page</a> — see it applied,
-        not just listed.
+      <p class="eyebrow" data-reveal>Capabilities</p>
+      <h1 data-reveal data-reveal-delay="60">Organized by what it's for, not by logo count.</h1>
+      <p class="cap__intro" data-reveal data-reveal-delay="120">
+        Click a capability — it highlights the real project that proves it, below. Nothing here is a claim without evidence attached.
       </p>
 
       <div class="cap__groups">
-        {groups.map((group) => (
-          <div class="cap__group">
+        {groups.map((group, gi) => (
+          <div class="cap__group" data-reveal data-reveal-delay={gi * 60}>
             <h2>{group.label}</h2>
-            <ul>{group.items.map((item) => <li>{item}</li>)}</ul>
+            <ul class="cap__chips">
+              {group.items.map((item) => (
+                <li>
+                  <button
+                    type="button"
+                    class="cap__chip"
+                    data-capability
+                    data-projects={item.projects.join(" ")}
+                    aria-describedby="cap-instructions"
+                  >
+                    {item.text}
+                  </button>
+                </li>
+              ))}
+            </ul>
             {group.tools.length > 0 && (
-              <p class="cap__tools"><span class="eyebrow">Tools</span> {group.tools.join(" · ")}</p>
+              <p class="cap__tools"><span class="eyebrow">Also</span> {group.tools.join(" · ")}</p>
             )}
           </div>
         ))}
+      </div>
+
+      <p id="cap-instructions" class="visually-hidden">Activating a capability highlights the matching project below.</p>
+
+      <div class="cap__evidence" data-reveal>
+        <p class="eyebrow">Evidence</p>
+        <div class="cap__evidence-grid">
+          {projects.map((project) => (
+            <a
+              href={`/work/${project.slug}/`}
+              class="cap__evidence-row"
+              data-project-row={project.slug}
+              style={`--row-a:${project.accent.a};`}
+            >
+              <span class="cap__evidence-name">{project.name}</span>
+              <span class="cap__evidence-tagline">{project.tagline}</span>
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   </section>
 
   <Footer slot="footer" />
+
+  <script>
+    import "../../scripts/reveal.js";
+    import "../../scripts/capability-matrix.js";
+  </script>
 </Layout>
 
 <style>
   .cap { padding-block: var(--space-6) var(--space-7); }
-  .cap__inner { max-width: 46rem; }
+  .cap__inner { max-width: 52rem; }
   .cap h1 {
     font-family: var(--font-display);
     font-weight: 400;
     font-size: var(--step-4);
     margin: 0.4rem 0 var(--space-2);
   }
-  .cap__intro { color: var(--graphite); margin-bottom: var(--space-5); }
-  .cap__intro a { color: var(--ink); }
-  .cap__groups { display: flex; flex-direction: column; gap: var(--space-5); }
+  .cap__intro { color: var(--graphite); margin-bottom: var(--space-5); max-width: 38rem; }
+  .cap__groups { display: flex; flex-direction: column; gap: var(--space-5); margin-bottom: var(--space-6); }
   .cap__group h2 {
     font-family: var(--font-display);
     font-size: var(--step-2);
     font-weight: 400;
     margin: 0 0 var(--space-2);
   }
-  .cap__group ul {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.4rem 1rem;
+  .cap__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     padding: 0;
     margin: 0 0 var(--space-2);
     list-style: none;
   }
-  .cap__group li {
-    padding-left: 1rem;
-    position: relative;
+  .cap__chip {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    cursor: pointer;
+    color: var(--ink);
+    transition: border-color var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
   }
-  .cap__group li::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.55em;
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--graphite);
-  }
+  .cap__chip:hover { border-color: var(--ink); }
+  .cap__chip.is-active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   .cap__tools { font-size: var(--step--1); color: var(--graphite); }
   .cap__tools .eyebrow { margin-right: 0.4rem; }
+
+  .cap__evidence { border-top: 1px solid var(--line); padding-top: var(--space-4); }
+  .cap__evidence-grid { display: flex; flex-direction: column; gap: 0.6rem; margin-top: var(--space-2); }
+  .cap__evidence-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.7rem;
+    text-decoration: none;
+    color: var(--ink);
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid transparent;
+    transition: opacity var(--dur-standard) var(--ease-standard), border-color var(--dur-standard) var(--ease-standard), background var(--dur-standard) var(--ease-standard);
+  }
+  .cap__evidence-name { font-family: var(--font-display); font-size: var(--step-1); }
+  .cap__evidence-tagline { color: var(--graphite); font-size: var(--step--1); }
+  .cap__evidence-row.is-match { border-left-color: var(--row-a); background: var(--paper-raised); }
+  .cap__evidence-row.is-dim { opacity: 0.35; }
 </style>

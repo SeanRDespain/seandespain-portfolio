@@ -8,11 +8,11 @@ import Footer from "../../components/Footer.astro";
 
   <section class="contact">
     <div class="container contact__inner">
-      <p class="eyebrow">Contact</p>
-      <h1>Let's talk about what you're building.</h1>
-      <p class="contact__sub">The fastest way to reach me is email.</p>
+      <p class="eyebrow" data-reveal>Contact</p>
+      <h1 data-reveal data-reveal-delay="60">Let's talk about what you're building.</h1>
+      <p class="contact__sub" data-reveal data-reveal-delay="100">The fastest way to reach me is email.</p>
 
-      <ul class="contact__list">
+      <ul class="contact__list" data-reveal data-reveal-delay="140">
         <li>
           <span class="eyebrow">Email</span>
           <a href="mailto:seandespain@gmail.com">seandespain@gmail.com</a>
@@ -30,6 +30,10 @@ import Footer from "../../components/Footer.astro";
   </section>
 
   <Footer slot="footer" />
+
+  <script>
+    import "../../scripts/reveal.js";
+  </script>
 </Layout>
 
 <style>

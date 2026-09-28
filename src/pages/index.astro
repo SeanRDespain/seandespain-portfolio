@@ -2,7 +2,6 @@
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import ProjectTile from "../components/ProjectTile.astro";
 import { projects } from "../data/projects.js";
 
 const capabilities = [
@@ -17,44 +16,85 @@ const capabilities = [
 
   <section class="hero">
     <div class="container hero__inner">
-      <p class="eyebrow">Product · Brand · Code</p>
-      <h1>
+      <p class="eyebrow" data-reveal>Product · Brand · Code</p>
+      <h1 data-reveal data-reveal-delay="60">
         I design, build, and launch <span class="serif-italic">digital products and brands.</span>
       </h1>
-      <p class="hero__sub">
+
+      <p class="hero__pipeline" data-reveal data-reveal-delay="140">
+        <span class="hero__pipeline-label">Every venture, the same throughline —</span>
+        <span class="hero__pipeline-word-wrap"><span data-pipeline-word>Concept</span></span>
+        <noscript>&nbsp;Concept → Brand → UX → Code → Launch → Operate</noscript>
+      </p>
+
+      <p class="hero__sub" data-reveal data-reveal-delay="200">
         Five ventures, founded and operated end to end — a wellness app live on the App Store, a
         business platform running four companies, a 50-person staffing company, a bilingual
         conservation program in the Amazon, and a children's entertainment brand. Same person,
-        every time: concept, design, code, brand, and launch.
+        every time.
       </p>
-      <div class="hero__ctas">
+      <div class="hero__ctas" data-reveal data-reveal-delay="260">
         <a class="btn btn--primary" href="#work">View selected work</a>
         <a class="btn btn--ghost" href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx">Download résumé</a>
       </div>
+
+      <ul class="hero__stamps" data-reveal data-reveal-delay="320" aria-label="Jump to a project">
+        {projects.map((p) => (
+          <li>
+            <a href={`#${p.slug}`} style={`--stamp:${p.accent.a}`}>
+              <span class="hero__stamp-dot" aria-hidden="true"></span>{p.short}
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 
-  <section id="work" class="work">
+  <section id="work" class="reel">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <h2>Five worlds, one builder</h2>
-        <p class="section-head__sub">Each of these is a real, shipped or shipping product — its colors and imagery are its own, not a template.</p>
+        <p class="section-head__sub">Real, shipped or shipping products — the colors and imagery below are each project's own, not a template applied five times.</p>
       </div>
-      <div class="work__grid">
-        {projects.map((project) => <ProjectTile project={project} />)}
-      </div>
+    </div>
+
+    <div class="reel__spine" role="presentation">
+      {projects.map((project, i) => (
+        <article
+          id={project.slug}
+          class="reel__row"
+          class:list={[i % 2 === 1 && "reel__row--reverse"]}
+          style={`--row-a:${project.accent.a}; --row-b:${project.accent.b};`}
+          data-reveal
+        >
+          <span class="reel__node" style={`--row-a:${project.accent.a};`} aria-hidden="true"></span>
+          <div class="container reel__row-inner">
+            <a href={`/work/${project.slug}/`} class="reel__media">
+              <img src={project.heroImage} alt="" loading="lazy" />
+            </a>
+            <div class="reel__copy">
+              <p class="reel__kind">{project.kind} · {project.years} · {project.status}</p>
+              <h3><a href={`/work/${project.slug}/`}>{project.name}</a></h3>
+              <p class="reel__tagline">{project.tagline}</p>
+              <p class="reel__role">{project.role}</p>
+              <p class="reel__tech">{project.tech.slice(0, 4).join(" · ")}</p>
+              <a class="reel__cta" href={`/work/${project.slug}/`}>Read the case study →</a>
+            </div>
+          </div>
+        </article>
+      ))}
     </div>
   </section>
 
   <section class="capabilities">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <h2>What that actually means</h2>
         <p class="section-head__sub">Capability comes from the work above — nothing here is a claim without a project behind it.</p>
       </div>
       <div class="capabilities__grid">
-        {capabilities.map((group) => (
-          <div class="capabilities__group">
+        {capabilities.map((group, i) => (
+          <div class="capabilities__group" data-reveal data-reveal-delay={i * 60}>
             <p class="eyebrow">{group.label}</p>
             <ul>
               {group.items.map((item) => <li>{item}</li>)}
@@ -62,12 +102,12 @@ const capabilities = [
           </div>
         ))}
       </div>
-      <a class="text-link" href="/capabilities/">See the full breakdown →</a>
+      <a class="text-link" href="/capabilities/">See the full capability → project matrix →</a>
     </div>
   </section>
 
   <section class="about-teaser">
-    <div class="container about-teaser__inner">
+    <div class="container about-teaser__inner" data-reveal>
       <p class="serif-italic about-teaser__quote">
         "I don't hand off any part of the pipeline. I identify the need, design the brand and the
         UX, build the working software, write the launch systems, then operate the result."
@@ -77,6 +117,11 @@ const capabilities = [
   </section>
 
   <Footer slot="footer" />
+
+  <script>
+    import "../scripts/reveal.js";
+    import "../scripts/pipeline-cycle.js";
+  </script>
 </Layout>
 
 <style>
@@ -91,6 +136,23 @@ const capabilities = [
     line-height: 1.05;
     margin: 0.5rem 0 var(--space-3);
   }
+  .hero__pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--graphite);
+    margin: 0 0 var(--space-3);
+  }
+  .hero__pipeline-word-wrap {
+    display: inline-block;
+    min-width: 4.5em;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  html:not(.js) .hero__pipeline-word-wrap { display: none; }
   .hero__sub {
     color: var(--graphite);
     font-size: var(--step-1);
@@ -111,13 +173,39 @@ const capabilities = [
     padding: 0.85rem 1.4rem;
     border-radius: 999px;
     border: 1px solid var(--ink);
+    transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
   }
   .btn--primary { background: var(--ink); color: var(--paper); }
   .btn--primary:hover { background: var(--ink-soft); }
   .btn--ghost { background: transparent; color: var(--ink); }
   .btn--ghost:hover { background: var(--line); }
 
-  .section-head { max-width: 40rem; margin-bottom: var(--space-4); }
+  .hero__stamps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    list-style: none;
+    padding: 0;
+    margin: var(--space-5) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+  }
+  .hero__stamps a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    color: var(--graphite);
+  }
+  .hero__stamps a:hover { color: var(--ink); }
+  .hero__stamp-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--stamp);
+    display: inline-block;
+  }
+
+  .section-head { max-width: 40rem; margin-bottom: var(--space-5); }
   .section-head h2 {
     font-family: var(--font-display);
     font-size: var(--step-4);
@@ -126,11 +214,84 @@ const capabilities = [
   }
   .section-head__sub { color: var(--graphite); margin: 0; }
 
-  .work { padding-block: var(--space-6); }
-  .work__grid {
+  /* ---- the reel: the build line, five stops, each project's own color ---- */
+  .reel { padding-block: var(--space-6); }
+  .reel__spine {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+  .reel__spine::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--line);
+    transform: translateX(-50%);
+  }
+  .reel__row { position: relative; scroll-margin-top: 5rem; }
+  .reel__node {
+    position: absolute;
+    left: 50%;
+    top: 2.2rem;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--row-a);
+    border: 3px solid var(--paper);
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+  .reel__row-inner {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--space-3);
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-5);
+    align-items: center;
+  }
+  .reel__row--reverse .reel__row-inner { direction: rtl; }
+  .reel__row--reverse .reel__row-inner > * { direction: ltr; }
+  .reel__media {
+    display: block;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border-top: 5px solid var(--row-a);
+    background: var(--row-b);
+    box-shadow: 0 24px 48px -30px rgba(21, 23, 27, 0.35);
+  }
+  .reel__media img {
+    width: 100%;
+    transition: transform var(--dur-narrative) var(--ease-out);
+  }
+  .reel__media:hover img { transform: scale(1.03); }
+  .reel__kind {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--row-b);
+    margin: 0 0 0.5rem;
+  }
+  .reel__copy h3 { margin: 0 0 0.5rem; }
+  .reel__copy h3 a {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--step-3);
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .reel__copy h3 a:hover { text-decoration: underline; }
+  .reel__tagline { font-size: var(--step-0); color: var(--ink); margin: 0 0 0.6rem; }
+  .reel__role { font-family: var(--font-mono); font-size: var(--step--1); color: var(--graphite); margin: 0 0 0.3rem; }
+  .reel__tech { font-family: var(--font-mono); font-size: 0.72rem; color: var(--graphite); margin: 0 0 var(--space-3); }
+  .reel__cta {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    text-decoration: none;
+    color: var(--ink);
+    border-bottom: 1px solid var(--ink);
   }
 
   .capabilities {
@@ -165,5 +326,15 @@ const capabilities = [
     font-size: var(--step-3);
     line-height: 1.3;
     margin: 0 0 var(--space-4);
+  }
+
+  @media (max-width: 860px) {
+    .reel__spine::before { left: var(--space-3); }
+    .reel__node { left: var(--space-3); top: 1.4rem; }
+    .reel__row-inner {
+      grid-template-columns: 1fr;
+      padding-left: var(--space-5);
+    }
+    .reel__row--reverse .reel__row-inner { direction: ltr; }
   }
 </style>
