@@ -97,16 +97,16 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
       </h1>
 
       <p class="hero__pipeline" data-reveal data-reveal-delay="140">
-        <span class="hero__pipeline-label">Every venture, the same throughline:</span>
-        <span class="hero__pipeline-word-wrap"><span data-pipeline-word>Concept</span></span>
-        <noscript>&nbsp;Concept → Brand → UX → Code → Launch → Operate</noscript>
+        <span class="hero__pipeline-label">Bring me the idea. I'll handle the</span>
+        <span class="hero__pipeline-word-wrap"><span data-pipeline-word>strategy</span></span>
+        <noscript>&nbsp;strategy, brand, design, code, launch, and marketing.</noscript>
       </p>
 
       <p class="hero__sub" data-reveal data-reveal-delay="200">
-        Five ventures, founded and operated end to end: a wellness app live on the App Store, a
-        business platform running four companies, a 50-person staffing company, a bilingual
-        conservation program in the Amazon, and a children's entertainment brand. Same person,
-        every time.
+        Apps, websites, business software, brands, and the marketing that puts them in front of
+        people. Whatever you need built, I can take it from a rough idea to something real people
+        use. Below are a few highlights: an app on the App Store, software that runs day-to-day
+        operations for several companies, and brands built from a blank page.
       </p>
       <div class="hero__ctas" data-reveal data-reveal-delay="260">
         <a class="btn btn--primary" href="#work">View selected work</a>
@@ -128,8 +128,8 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   <section id="work" class="reel">
     <div class="container">
       <div class="section-head" data-reveal>
-        <h2>Five worlds, one builder</h2>
-        <p class="section-head__sub">Real, shipped or shipping products. The colors and imagery below are each project's own, not a template applied five times.</p>
+        <h2>A few things I've built</h2>
+        <p class="section-head__sub">Highlights, not the full list. Different industries, different problems, and a different mix of design, code, brand, and marketing every time.</p>
       </div>
     </div>
 
@@ -168,8 +168,8 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   <section class="capabilities">
     <div class="container">
       <div class="section-head" data-reveal>
-        <h2>What that actually means</h2>
-        <p class="section-head__sub">Capability comes from the work above. Nothing here is a claim without a project behind it.</p>
+        <h2>What I can take on</h2>
+        <p class="section-head__sub">The skills behind the projects above, ready to put to work on whatever you're building next.</p>
       </div>
       <div class="capabilities__grid">
         {capabilities.map((group, i) => (
@@ -449,10 +449,11 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   }
   .hero__pipeline-word-wrap {
     display: inline-block;
-    min-width: 4.5em;
+    min-width: 6em;
     color: var(--night-ice);
     font-weight: 500;
   }
+  .hero__pipeline-word-wrap::after { content: "."; }
   html:not(.js) .hero__pipeline-word-wrap { display: none; }
   .hero__sub {
     color: rgba(var(--night-text), 0.74);

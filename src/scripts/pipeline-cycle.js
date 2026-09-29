@@ -1,8 +1,8 @@
-// Hero kinetic type: cycles the word in [data-pipeline-word] through the
-// actual stages Sean runs on every venture. Function: shows the breadth
-// claim in motion instead of stating it once. Reduced-motion users get the
-// full static list instead (see the noscript-equivalent markup in index.astro).
-const stages = ["Concept", "Brand", "UX", "Code", "Launch", "Operate"];
+// Hero kinetic type: completes "Bring me the idea. I'll handle the ___" with
+// each part of a project Sean covers, so the breadth shows in motion instead
+// of being stated once. Reduced-motion users get the static first word, and
+// no-JS users get the full list (see the noscript markup in index.astro).
+const stages = ["strategy", "brand", "design", "code", "launch", "marketing"];
 const el = document.querySelector("[data-pipeline-word]");
 const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
