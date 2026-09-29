@@ -47,10 +47,20 @@ Real screenshots only, no stock photography, no fabricated UI. Sources:
 
 ## Résumé
 
-`public/resume/` holds the master résumé plus all six role-specific variants (`.docx`, ATS-friendly).
-The header/footer link to the hybrid product/creative-technology version by default; swap the linked
-filename in `src/components/Header.astro` and `Footer.astro` per application if a different variant
-fits better.
+`public/resume/` holds the master résumé plus all six role-specific variants, each as a PDF (what the
+site links to) and a `.docx` (for application portals that want Word). Both formats are generated
+from the same markdown in `sean-despain-career/`:
+
+```
+cd ../sean-despain-career/tools
+node generate-resume-pdf.mjs --all          # every PDF into ../output
+node generate-resume.mjs ../X.md ../output/Y.docx
+```
+
+Then copy the changed files from `sean-despain-career/output/` into `public/resume/`. The site links
+to the hybrid product/creative-technology version by default; swap the linked filename in
+`Header.astro`, `Footer.astro`, `index.astro`, `about/index.astro`, and `contact/index.astro` if a
+different variant fits better.
 
 ## Deploying
 

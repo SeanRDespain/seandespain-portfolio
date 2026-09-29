@@ -23,7 +23,8 @@ import Footer from "../../components/Footer.astro";
         </li>
         <li>
           <span class="eyebrow">Résumé</span>
-          <a href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx">Download the hybrid product/creative-technology résumé</a>
+          <a href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.pdf" download>Download my résumé (PDF)</a>
+          <a class="contact__alt" href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.docx" download>Need a Word file? Download the .docx</a>
         </li>
       </ul>
     </div>
@@ -49,4 +50,11 @@ import Footer from "../../components/Footer.astro";
   .contact__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
   .contact__list li { display: flex; flex-direction: column; gap: 0.2rem; border-bottom: 1px solid var(--line); padding-bottom: var(--space-2); }
   .contact__list a { font-size: var(--step-1); text-decoration: none; border-bottom: 1px solid var(--ink); width: fit-content; }
+  .contact__list a.contact__alt {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--graphite);
+    border-bottom-color: var(--line);
+    margin-top: 0.3rem;
+  }
 </style>
