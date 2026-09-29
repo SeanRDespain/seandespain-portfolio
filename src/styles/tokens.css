@@ -64,11 +64,6 @@
   --opal-jade: color-mix(in srgb, var(--qinty-forest) 55%, white 45%);
   --opal-sapphire: color-mix(in srgb, var(--oup-plum) 45%, var(--oup-lavender) 55%);
 
-  /* matrix-green: brightened straight out of Peace Life's real teal so the
-     hero's "code rain" ties back to the same palette instead of importing
-     an unrelated neon green */
-  --matrix-green: color-mix(in srgb, var(--pl-teal) 45%, #6bffa0 55%);
-
   /* night sky: the hero's palette. Deep navy base, indigo and periwinkle
      glows, cool blue-white light for text and stars */
   --night-top: #1b2547;

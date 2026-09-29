@@ -60,9 +60,51 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     peakOpacity: ((front ? 0.55 : 0.32) * (inTextZone ? 0.4 : 1)).toFixed(2),
   };
 });
+
+// opening sequence: each letter starts as a binary digit and decodes into
+// place (see scripts/intro.js)
+const introChars = "SEAN DESPAIN".split("").map((ch) => ({
+  ch,
+  seed: rand() > 0.5 ? "1" : "0",
+}));
 ---
 <Layout title="Product Builder & Creative Technologist">
+  <Fragment slot="head">
+    <script is:inline>
+      // Decide before first paint whether the opening sequence plays, so the
+      // hero never flashes underneath it. Once per session, never with
+      // reduced motion, never when arriving at a #section link. ?intro
+      // replays it on demand.
+      (function () {
+        try {
+          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          var force = /[?&]intro\b/.test(location.search);
+          if (!force && (location.hash || sessionStorage.getItem("sd-intro-seen"))) return;
+          document.documentElement.classList.add("intro-active");
+        } catch (e) {}
+      })();
+    </script>
+  </Fragment>
   <Header slot="header" />
+
+  <div class="intro" data-intro aria-hidden="true">
+    <div class="intro__half intro__half--top">
+      <p class="intro__name">
+        {introChars.map((c) =>
+          c.ch === " "
+            ? <span class="intro__char intro__char--space">&nbsp;</span>
+            : <span class="intro__char" data-char={c.ch}>{c.seed}</span>
+        )}
+      </p>
+      <span class="intro__edge"></span>
+    </div>
+    <div class="intro__half intro__half--bottom">
+      <p class="intro__tag">Product · Brand · Code</p>
+      <span class="intro__edge"></span>
+    </div>
+    <span class="intro__line"></span>
+    <canvas class="intro__stars"></canvas>
+  </div>
 
   <section class="hero">
     <div class="hero__aura" aria-hidden="true">
@@ -200,8 +242,149 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
   <script>
     import "../scripts/reveal.js";
     import "../scripts/pipeline-cycle.js";
+    import "../scripts/intro.js";
   </script>
 </Layout>
+
+<style is:global>
+  /* ---- opening sequence (first load per session, see scripts/intro.js) ----
+     Hidden unless the head script added html.intro-active before first
+     paint. If the script never runs, a CSS failsafe fades the overlay out
+     after 4.5s so the page can never get stuck behind it. */
+  @property --intro-ls {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0.42em;
+  }
+  .intro { display: none; }
+  html.intro-active .intro {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    overflow: hidden;
+    animation: introFailsafe 0.6s ease 4.5s forwards;
+  }
+  html.intro-active .intro.is-running { animation: none; }
+  @keyframes introFailsafe {
+    to { opacity: 0; visibility: hidden; }
+  }
+  html.intro-active .hero__aura {
+    opacity: 0.2;
+    transform: scale(1.06);
+    animation: introAuraFailsafe 0.6s ease 4.5s forwards;
+  }
+  @keyframes introAuraFailsafe {
+    to { opacity: 1; transform: none; }
+  }
+
+  /* two halves of one night: mirrored gradients meet at the seam, where a
+     soft indigo glow sits right behind the name */
+  .intro__half {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: calc(50% + 1px);
+    will-change: transform;
+  }
+  .intro__half--top {
+    top: 0;
+    background:
+      radial-gradient(60% 70% at 50% 100%, rgba(79, 91, 213, 0.22), transparent 70%),
+      linear-gradient(180deg, #03050d 0%, #070b1c 55%, #0c1330 100%);
+  }
+  .intro__half--bottom {
+    bottom: 0;
+    background:
+      radial-gradient(60% 70% at 50% 0%, rgba(79, 91, 213, 0.22), transparent 70%),
+      linear-gradient(0deg, #03050d 0%, #070b1c 55%, #0c1330 100%);
+  }
+
+  .intro__name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: clamp(1.1rem, 3.4vh, 2.1rem);
+    margin: 0;
+    text-align: center;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(1.1rem, 2.6vw, 2.1rem);
+    line-height: 1;
+    opacity: 0;
+  }
+  .intro__char {
+    display: inline-block;
+    width: 1ch;
+    margin: 0 calc(var(--intro-ls) / 2);
+    color: rgba(169, 184, 255, 0.5);
+  }
+  .intro__char.is-locked {
+    color: var(--night-ice);
+    text-shadow: 0 0 10px rgba(169, 184, 255, 0.35);
+    animation: introCharLock 0.9s ease-out;
+  }
+  @keyframes introCharLock {
+    0% { color: #fff; text-shadow: 0 0 14px #fff, 0 0 30px rgba(169, 184, 255, 0.9); }
+    100% { text-shadow: 0 0 10px rgba(169, 184, 255, 0.35); }
+  }
+
+  .intro__tag {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: clamp(1.1rem, 3.4vh, 2.1rem);
+    margin: 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: clamp(0.64rem, 0.9vw, 0.76rem);
+    letter-spacing: 0.38em;
+    padding-left: 0.38em;
+    text-transform: uppercase;
+    color: rgba(var(--night-text), 0.6);
+    opacity: 0;
+  }
+
+  /* the line of light: draws out from the center, then tears into the two
+     edges that ride the halves apart */
+  .intro__line,
+  .intro__edge {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%, rgba(169, 184, 255, 0.5) 18%, #fff 50%, rgba(169, 184, 255, 0.5) 82%, transparent 100%);
+    opacity: 0;
+  }
+  .intro__line::after,
+  .intro__edge::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+    background: inherit;
+    filter: blur(5px);
+  }
+  .intro__line {
+    top: 50%;
+    margin-top: -0.5px;
+    transform: scaleX(0);
+    z-index: 2;
+  }
+  .intro__half--top .intro__edge { bottom: 0; }
+  .intro__half--bottom .intro__edge { top: 0; }
+
+  .intro__stars {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+  }
+</style>
 
 <style>
   .hero {
@@ -378,7 +561,7 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     .hero__star--twinkle { animation: none; }
     .hero__shooting-star { display: none; }
   }
-  /* digit columns (binary, matrix-green) rising from the bottom edge and
+  /* digit columns (binary, starlight white) rising from the bottom edge and
      dissolving on the way up. Dense at the left/right edges, thinned out
      behind the headline/body column so it frames the copy instead of
      sitting on top of it. Two depths (front/back) give it real space:
@@ -397,18 +580,18 @@ const matrixCols = Array.from({ length: COLS }).map((_, i) => {
     font-family: var(--font-mono);
     line-height: 1.55;
     white-space: pre-line;
-    color: var(--matrix-green);
+    color: var(--night-ice);
     opacity: 0;
     animation: matrixRise linear infinite;
   }
   .hero__matrix-col--front {
     font-size: 15px;
-    text-shadow: 0 0 7px color-mix(in srgb, var(--matrix-green) 70%, transparent);
+    text-shadow: 0 0 8px rgba(var(--night-text), 0.6), 0 0 18px rgba(169, 184, 255, 0.25);
   }
   .hero__matrix-col--back {
     font-size: 11px;
     filter: blur(0.6px);
-    text-shadow: 0 0 4px color-mix(in srgb, var(--matrix-green) 50%, transparent);
+    text-shadow: 0 0 4px rgba(var(--night-text), 0.4);
   }
   @keyframes matrixRise {
     0% { translate: 0 0; opacity: 0; }
