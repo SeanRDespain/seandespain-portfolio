@@ -67,6 +67,31 @@ const introChars = "SEAN DESPAIN".split("").map((ch) => ({
   ch,
   seed: rand() > 0.5 ? "1" : "0",
 }));
+
+// "Work with me": the page closes under the same night sky it opens with,
+// so the invitation reads as a bookend to the hero
+const inviteStars = Array.from({ length: 70 }).map((_, i) => ({
+  top: (rand() * 100).toFixed(1),
+  left: (rand() * 100).toFixed(1),
+  size: (i % 7 === 0 ? 1.9 + rand() : 0.9 + rand() * 0.8).toFixed(2),
+  opacity: (0.35 + rand() * 0.5).toFixed(2),
+  twinkle: i % 3 === 0,
+  delay: (rand() * 6).toFixed(2),
+  duration: (3 + rand() * 3).toFixed(2),
+}));
+
+const EMAIL = "seandespain@gmail.com";
+// a prefilled outline makes the first message easy to write
+const projectMail = `mailto:${EMAIL}?subject=${encodeURIComponent("Project inquiry")}&body=${encodeURIComponent(
+  "Hi Sean,\r\n\r\nWhat I need built:\r\n\r\nWho it's for:\r\n\r\nIdeal timeline:\r\n\r\nBudget range (if known):\r\n"
+)}`;
+
+const inviteKinds = ["Apps", "Websites", "Business software", "Brand identity", "Marketing & launch"];
+const inviteSteps = [
+  { title: "Tell me what you're building", body: "A few lines is enough: what it is, who it's for, and when you'd like it." },
+  { title: "We talk it through", body: "A call to understand the goal, the budget, and what a win looks like for you." },
+  { title: "You get a clear plan", body: "What I'd build, the timeline, and the cost, so you know exactly what you're getting before we start." },
+];
 ---
 <Layout title="Product Builder & Creative Technologist">
   <Fragment slot="head">
@@ -152,6 +177,7 @@ const introChars = "SEAN DESPAIN".split("").map((ch) => ({
       </p>
       <div class="hero__ctas" data-reveal data-reveal-delay="260">
         <a class="btn btn--primary" href="#work">View selected work</a>
+        <a class="btn btn--ghost" href="#work-with-me">Start a project</a>
         <a class="btn btn--ghost" href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.pdf" download>Download résumé</a>
       </div>
 
@@ -239,12 +265,72 @@ const introChars = "SEAN DESPAIN".split("").map((ch) => ({
     </div>
   </section>
 
+  <section id="work-with-me" class="invite" aria-labelledby="invite-title">
+    <div class="invite__sky" aria-hidden="true">
+      <span class="invite__glow invite__glow--indigo"></span>
+      <span class="invite__glow invite__glow--teal"></span>
+      {inviteStars.map((st) => (
+        <span
+          class:list={["invite__star", st.twinkle && "invite__star--twinkle"]}
+          style={`top:${st.top}%; left:${st.left}%; width:${st.size}px; height:${st.size}px; opacity:${st.opacity}; --star-o:${st.opacity}; animation-delay:${st.delay}s; animation-duration:${st.duration}s;`}
+        ></span>
+      ))}
+    </div>
+
+    <div class="container invite__inner">
+      <div class="invite__head">
+        <p class="eyebrow" data-reveal>Work with me</p>
+        <h2 id="invite-title" data-reveal data-reveal-delay="60">
+          Have a project in mind? <span class="serif-italic">Let's build&nbsp;it.</span>
+        </h2>
+        <p class="invite__lede" data-reveal data-reveal-delay="120">
+          I take on freelance and contract projects: apps, websites, business software, brands, and
+          the marketing that launches them. A full plan or a rough idea, either one is a fine place to
+          start. Send me a few lines and I'll reply personally.
+        </p>
+        <ul class="invite__kinds" data-reveal data-reveal-delay="180" aria-label="Kinds of projects I take on">
+          {inviteKinds.map((k) => <li>{k}</li>)}
+        </ul>
+      </div>
+
+      <div class="invite__card" data-reveal data-reveal-delay="160">
+        <p class="invite__card-label">How it starts</p>
+        <ol class="invite__steps">
+          {inviteSteps.map((step, i) => (
+            <li class="invite__step">
+              <span class="invite__step-n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div class="invite__actions" data-reveal data-reveal-delay="220">
+        <div class="invite__buttons">
+          <a class="btn btn--primary" href={projectMail}>Email me about a project</a>
+          <button type="button" class="btn btn--ghost" data-copy-email={EMAIL}>Copy my email</button>
+          <a class="btn btn--ghost" href="https://www.linkedin.com/in/sean-despain-560316116/" target="_blank" rel="noopener noreferrer">Message me on LinkedIn</a>
+        </div>
+        <p class="invite__direct">
+          Or write to me directly at <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
+          <span class="visually-hidden" aria-live="polite" data-copy-status></span>
+        </p>
+        <p class="invite__roles">
+          Hiring for a full-time role instead? Same email works, and{" "}
+          <a href="/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.pdf" target="_blank" rel="noopener">here's my résumé</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <Footer slot="footer" />
 
   <script>
     import "../scripts/reveal.js";
     import "../scripts/pipeline-cycle.js";
     import "../scripts/intro.js";
+    import "../scripts/copy-email.js";
   </script>
 </Layout>
 
@@ -876,6 +962,202 @@ const introChars = "SEAN DESPAIN".split("").map((ch) => ({
     font-size: var(--step-3);
     line-height: 1.3;
     margin: 0 0 var(--space-4);
+  }
+
+  /* ---- work with me: the invitation, under the hero's night sky ---- */
+  .invite {
+    position: relative;
+    overflow: hidden;
+    scroll-margin-top: 4rem;
+    padding-block: var(--space-7);
+    background: radial-gradient(120% 95% at 82% 0%, var(--night-top) 0%, var(--night-mid) 52%, var(--night-deep) 100%);
+    color: var(--night-ice);
+  }
+  .invite__sky {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .invite__glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    mix-blend-mode: screen;
+    animation: glowDrift 46s var(--ease-in-out) infinite;
+  }
+  .invite__glow--indigo {
+    top: -30%;
+    left: -12%;
+    width: 50vw;
+    height: 50vw;
+    max-width: 620px;
+    max-height: 620px;
+    min-width: 320px;
+    min-height: 320px;
+    background: var(--night-indigo);
+    opacity: 0.34;
+  }
+  .invite__glow--teal {
+    bottom: -36%;
+    right: -12%;
+    width: 44vw;
+    height: 44vw;
+    max-width: 560px;
+    max-height: 560px;
+    min-width: 300px;
+    min-height: 300px;
+    background: color-mix(in srgb, var(--pl-teal) 55%, #1e5a8a 45%);
+    opacity: 0.26;
+    animation-duration: 54s;
+    animation-delay: -20s;
+  }
+  .invite__star {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--night-ice);
+  }
+  .invite__star--twinkle { animation: starTwinkle 4s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .invite__glow, .invite__star--twinkle { animation: none; }
+  }
+
+  .invite__inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: var(--space-5);
+  }
+  .invite .eyebrow { color: rgba(var(--night-text), 0.62); }
+  .invite h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--step-5);
+    line-height: 1.05;
+    margin: 0.5rem 0 var(--space-3);
+    color: var(--night-ice);
+  }
+  .invite h2 .serif-italic {
+    color: var(--night-periwinkle);
+    background: linear-gradient(100deg, #b9c7ff 0%, var(--night-periwinkle) 45%, #b3a4ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .invite__lede {
+    font-size: var(--step-1);
+    color: rgba(var(--night-text), 0.78);
+    max-width: 38rem;
+    margin: 0;
+  }
+  .invite__kinds {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-4) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+  }
+  .invite__kinds li {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid rgba(var(--night-text), 0.24);
+    border-radius: 999px;
+    color: rgba(var(--night-text), 0.85);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .invite__card {
+    padding: var(--space-4);
+    border: 1px solid rgba(var(--night-text), 0.14);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .invite__card-label {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(var(--night-text), 0.6);
+    margin: 0 0 var(--space-3);
+  }
+  .invite__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .invite__step {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    column-gap: var(--space-2);
+    row-gap: 0.25rem;
+  }
+  .invite__step + .invite__step {
+    padding-top: var(--space-3);
+    border-top: 1px solid rgba(var(--night-text), 0.1);
+  }
+  .invite__step-n {
+    grid-row: span 2;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--night-periwinkle);
+    padding-top: 0.3rem;
+  }
+  .invite__step h3 {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--step-1);
+    font-weight: 600;
+    color: var(--night-ice);
+  }
+  .invite__step p {
+    margin: 0;
+    color: rgba(var(--night-text), 0.7);
+  }
+
+  .invite__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  @media (max-width: 560px) {
+    .invite__buttons .btn { flex: 1 1 100%; text-align: center; }
+  }
+  .invite .btn--primary { background: var(--night-ice); color: var(--night-deep); border-color: var(--night-ice); }
+  .invite .btn--primary:hover { background: var(--night-periwinkle); border-color: var(--night-periwinkle); }
+  .invite .btn--ghost {
+    background: transparent;
+    color: var(--night-ice);
+    border-color: rgba(var(--night-text), 0.45);
+    cursor: pointer;
+  }
+  .invite .btn--ghost:hover { background: rgba(var(--night-text), 0.1); }
+  .invite .btn:focus-visible { outline: 2px solid var(--night-periwinkle); outline-offset: 3px; }
+  .invite__direct,
+  .invite__roles {
+    margin: var(--space-3) 0 0;
+    color: rgba(var(--night-text), 0.66);
+    font-size: var(--step--1);
+    font-family: var(--font-mono);
+  }
+  .invite__roles { margin-top: var(--space-1); }
+  .invite__direct a,
+  .invite__roles a {
+    color: var(--night-ice);
+    text-underline-offset: 3px;
+  }
+
+  @media (min-width: 900px) {
+    .invite__inner {
+      grid-template-columns: 1.15fr 0.85fr;
+      column-gap: var(--space-6);
+      align-items: start;
+    }
+    .invite__actions { grid-column: 1 / -1; }
   }
 
   @media (max-width: 860px) {
