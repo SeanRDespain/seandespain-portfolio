@@ -62,6 +62,13 @@ to the hybrid product/creative-technology version by default; swap the linked fi
 `Header.astro`, `Footer.astro`, `index.astro`, `about/index.astro`, and `contact/index.astro` if a
 different variant fits better.
 
+## Analytics
+
+Google Analytics 4 (`G-ZMM05DKGDB`) is set up in `src/layouts/Layout.astro`, so it's on every page.
+Each page is a full page load, so the standard tag records one page view per page with no extra
+routing code. It only reports from `seandespain.com`: localhost, test runs, and the netlify.app
+address load the tag but send nothing.
+
 ## Deploying
 
 Live at seandespain.com and seandespainportfolio.netlify.app. Repo: `SeanRDespain/seandespain-portfolio`
