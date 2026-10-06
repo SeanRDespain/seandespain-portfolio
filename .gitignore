@@ -2,3 +2,8 @@ node_modules/
 dist/
 .astro/
 *.log
+# local portal storage and env files (never committed)
+.portal-data/
+.portal-test/
+.env
+.env.*

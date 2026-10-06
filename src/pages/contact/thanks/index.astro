@@ -1,0 +1,23 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import Header from "../../../components/Header.astro";
+import Footer from "../../../components/Footer.astro";
+---
+<Layout title="Thanks" description="Your message is on its way to Sean Despain." noindex>
+  <Header slot="header" />
+  <section class="thanks">
+    <div class="container thanks__inner">
+      <p class="eyebrow">Contact</p>
+      <h1>Thanks, it's on its way to me.</h1>
+      <p>I'll reply personally. If it's urgent, email me at <a href="mailto:seandespain@gmail.com">seandespain@gmail.com</a>.</p>
+      <p><a href="/#work">Back to the work →</a></p>
+    </div>
+  </section>
+  <Footer slot="footer" />
+</Layout>
+
+<style>
+  .thanks { padding-block: var(--space-7); }
+  .thanks__inner { max-width: 36rem; }
+  .thanks h1 { font-family: var(--font-display); font-weight: 400; font-size: var(--step-4); margin: 0.4rem 0 var(--space-3); }
+</style>

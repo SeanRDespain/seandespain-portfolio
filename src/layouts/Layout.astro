@@ -72,5 +72,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       <slot />
     </main>
     <slot name="footer" />
+    <script>
+      // every public page: remember how this visitor arrived (used only if
+      // they send the inquiry form) and report the few actions worth measuring
+      import "../scripts/attribution.js";
+      import "../scripts/conversion-events.js";
+    </script>
   </body>
 </html>

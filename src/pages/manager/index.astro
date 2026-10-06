@@ -1,0 +1,35 @@
+---
+// The manager portal. This page is only a shell: it holds no data and no
+// secrets. Everything it shows comes from /api/manager/*, which checks the
+// session on the server for every request.
+import "../../styles/tokens.css";
+import "../../styles/manager.css";
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0e1530" />
+    <title>Portal · Sean Despain</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="mp">
+    <div id="app" class="mp-boot" aria-live="polite">
+      <p class="mp-boot__text">Loading the portal…</p>
+    </div>
+    <dialog id="sheet" class="mp-sheet" aria-labelledby="sheet-title"></dialog>
+    <div id="toast" class="mp-toast" role="status" aria-live="polite" hidden></div>
+    <noscript><p class="mp-boot__text">The portal needs JavaScript.</p></noscript>
+    <script>
+      import "../../scripts/manager/main.js";
+    </script>
+  </body>
+</html>

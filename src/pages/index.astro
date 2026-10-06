@@ -81,10 +81,6 @@ const inviteStars = Array.from({ length: 70 }).map((_, i) => ({
 }));
 
 const EMAIL = "seandespain@gmail.com";
-// a prefilled outline makes the first message easy to write
-const projectMail = `mailto:${EMAIL}?subject=${encodeURIComponent("Project inquiry")}&body=${encodeURIComponent(
-  "Hi Sean,\r\n\r\nWhat I need built:\r\n\r\nWho it's for:\r\n\r\nIdeal timeline:\r\n\r\nBudget range (if known):\r\n"
-)}`;
 
 const inviteKinds = ["Apps", "Websites", "Business software", "Brand identity", "Marketing & launch"];
 const inviteSteps = [
@@ -308,7 +304,7 @@ const inviteSteps = [
 
       <div class="invite__actions" data-reveal data-reveal-delay="220">
         <div class="invite__buttons">
-          <a class="btn btn--primary" href={projectMail}>Email me about a project</a>
+          <a class="btn btn--primary" href="/contact/?type=project#inquiry">Tell me about your project</a>
           <button type="button" class="btn btn--ghost" data-copy-email={EMAIL}>Copy my email</button>
           <a class="btn btn--ghost" href="https://www.linkedin.com/in/sean-despain-560316116/" target="_blank" rel="noopener noreferrer">Message me on LinkedIn</a>
         </div>

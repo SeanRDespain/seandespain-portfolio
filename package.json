@@ -7,12 +7,16 @@
     "dev": "astro dev --port 4500",
     "build": "astro build",
     "preview": "astro preview --port 4501",
-    "shoot": "node shoot.mjs"
+    "shoot": "node shoot.mjs",
+    "portal:dev": "node scripts/portal-dev.mjs",
+    "hash-password": "node scripts/hash-password.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
-    "astro": "^7.3.5"
+    "@netlify/blobs": "^10.7.13",
+    "astro": "^7.3.5",
+    "bcryptjs": "^3.0.3"
   },
   "devDependencies": {
     "playwright": "^1.63.0",

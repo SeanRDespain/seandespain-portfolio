@@ -37,8 +37,8 @@ const chapters = [
         <p class="case__tagline" data-reveal data-reveal-delay="120">{project.tagline}</p>
         <p class="case__role" data-reveal data-reveal-delay="160">{project.role}</p>
         <div class="case__links" data-reveal data-reveal-delay="200">
-          {project.live && <a class="btn btn--ghost" href={project.live} target="_blank" rel="noopener noreferrer">Live site ↗</a>}
-          {project.appStore && <a class="btn btn--ghost" href={project.appStore} target="_blank" rel="noopener noreferrer">App Store ↗</a>}
+          {project.live && <a class="btn btn--ghost" href={project.live} target="_blank" rel="noopener noreferrer" data-live-project={project.slug}>Live site ↗</a>}
+          {project.appStore && <a class="btn btn--ghost" href={project.appStore} target="_blank" rel="noopener noreferrer" data-live-project={project.slug}>App Store ↗</a>}
         </div>
       </div>
     </header>
