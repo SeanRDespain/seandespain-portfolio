@@ -4,8 +4,8 @@
 
 | Piece | State |
 |---|---|
-| Site data API (this repo) | **Ready.** End-to-end suite passes locally against the real function code (`node scripts/portal-test.mjs`, 99 checks). On production, unauthenticated requests are verified rejected. |
-| Production token | Needs `JARVIS_SITE_API_TOKEN` set in Netlify (see "Configuration"). Until then authenticated calls return `503 not_configured`. |
+| Site data API (this repo) | **Ready.** End-to-end suite passes locally against the real function code (`node scripts/portal-test.mjs`, 99 checks). On production, unauthenticated and wrong-token requests are verified rejected. |
+| Production token | **Set and verified** (2026-10-07): `GET /health` with the token returned `200`, `business_id: sean-despain`, `status: ok`. The token value is held by Sean; it is not in this repo. |
 | Jarvis connector | **Not connected.** No Jarvis fetch has been verified. Build or verify it in the Jarvis tab using this document. |
 
 ## Business identity
