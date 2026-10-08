@@ -1,7 +1,7 @@
 // Optional email alert to Sean when a website inquiry arrives, through
 // Resend's API. Off until RESEND_API_KEY and NOTIFY_EMAIL are set; an inquiry
 // is always saved to the portal first, so a mail failure never loses a lead.
-import { labelOf, BUDGETS, TIMELINES } from "./model.js";
+import { labelOf, BUDGETS, TIMELINES, SERVICES } from "./model.js";
 
 export function notifyConfigured() {
   return Boolean(process.env.RESEND_API_KEY && process.env.NOTIFY_EMAIL);
@@ -9,10 +9,11 @@ export function notifyConfigured() {
 
 export async function notifyNewInquiry({ form, sourceLabel, portalUrl }) {
   if (!notifyConfigured()) return { sent: false, reason: "not_configured" };
-  const kind = form.type === "project" ? "Project inquiry" : form.type === "job" ? "Job / role inquiry" : "Question";
+  const kind = form.type === "client_work" ? "Client work inquiry" : form.type === "employment" ? "Employment / role inquiry" : "Question";
   const lines = [
     `${kind} from ${form.name}${form.company ? ` (${form.company})` : ""}`,
     `Email: ${form.email}`,
+    form.service ? `Needs: ${labelOf(SERVICES, form.service)}` : null,
     form.budget ? `Budget: ${labelOf(BUDGETS, form.budget)}` : null,
     form.timeline ? `Timeline: ${labelOf(TIMELINES, form.timeline)}` : null,
     `Came from: ${sourceLabel}`,

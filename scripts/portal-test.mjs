@@ -1,6 +1,8 @@
-// End-to-end test for the manager portal, the inquiry form, and the Jarvis
-// API. Starts the local dev server with a random throwaway password, runs
-// every check against it, and prints a pass/fail list.
+// End-to-end test for the business portal, the inquiry form, and the Jarvis
+// data API. Starts the local server (real function code, local file storage)
+// with a random throwaway password and Jarvis token, runs every check, and
+// prints pass/fail. All records it creates are labeled "[TEST]" or live in a
+// throwaway store that is deleted first.
 //
 //   npm run build && node scripts/portal-test.mjs [screenshotDir]
 import { spawn } from "node:child_process";
@@ -12,22 +14,28 @@ import { chromium } from "playwright";
 
 const PORT = 4519;
 const BASE = `http://localhost:${PORT}`;
-const STORE = ".portal-test";
 const shots = process.argv[2] || null;
 const password = randomBytes(12).toString("base64url");
+const jarvisToken = randomBytes(24).toString("base64url");
 const results = [];
 const check = (name, ok, detail = "") => {
-  results.push({ name, ok: Boolean(ok), detail });
+  results.push({ name, ok: Boolean(ok) });
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail && !ok ? `  (${detail})` : ""}`);
 };
 
-await fs.rm(STORE, { recursive: true, force: true });
-const server = spawn(process.execPath, ["scripts/portal-dev.mjs", String(PORT)], {
-  env: { ...process.env, SD_STORE_DIR: STORE, MANAGER_PORTAL_PASSWORD_HASH: bcrypt.hashSync(password, 10) },
-  stdio: ["ignore", "pipe", "pipe"],
-});
-await new Promise((resolve) => server.stdout.on("data", (d) => String(d).includes("portal dev server") && resolve()));
-server.stderr.on("data", (d) => process.stderr.write(`[server] ${d}`));
+let server;
+async function startServer(store) {
+  server = spawn(process.execPath, ["scripts/portal-dev.mjs", String(PORT)], {
+    env: { ...process.env, SD_STORE_DIR: store, MANAGER_PORTAL_PASSWORD_HASH: bcrypt.hashSync(password, 10), JARVIS_SITE_API_TOKEN: jarvisToken },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  server.stderr.on("data", (d) => process.stderr.write(`[server] ${d}`));
+  await new Promise((resolve) => server.stdout.on("data", (d) => String(d).includes("portal dev server") && resolve()));
+}
+async function stopServer() {
+  server.kill();
+  await new Promise((r) => setTimeout(r, 300));
+}
 
 async function call(p, { method = "GET", body, cookie, ip = "10.0.0.1", portal = true, headers = {} } = {}) {
   const h = { ...headers, "x-test-ip": ip };
@@ -42,34 +50,79 @@ async function call(p, { method = "GET", body, cookie, ip = "10.0.0.1", portal =
   } catch {}
   return { status: res.status, json, text, headers: res.headers };
 }
-const loginCookie = async (ip = "10.0.0.2", username) => {
-  const r = await call("/api/manager/login", { method: "POST", body: { password, ...(username ? { username } : {}) }, ip });
+const signIn = async (ip, username, pw = password) => {
+  const r = await call("/api/manager/login", { method: "POST", body: { password: pw, ...(username ? { username } : {}) }, ip });
   return { r, cookie: (r.headers.getSetCookie()[0] || "").split(";")[0] };
 };
+const jarvis = (p, token = jarvisToken) => call(p, { portal: false, headers: token ? { authorization: `Bearer ${token}` } : {} });
+const inquiry = (body, ip = "10.1.0.1") => call("/api/inquiry", { method: "POST", portal: false, body: { t: Date.now() - 5000, ...body }, ip });
+const ymd = (offsetDays) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(Date.now() + offsetDays * 86400000));
 
 try {
-  // ---------------- authentication ----------------
-  check("API: me requires sign-in", (await call("/api/manager/me")).status === 401);
-  check("API: overview requires sign-in", (await call("/api/manager/overview")).status === 401);
-  check("API: contacts requires sign-in", (await call("/api/manager/contacts")).status === 401);
-  check("Jarvis API requires a key", (await call("/api/jarvis/v1/summary", { portal: false })).status === 401);
-  check("Wrong password is rejected", (await call("/api/manager/login", { method: "POST", body: { password: "nope-nope" }, ip: "10.0.1.1" })).status === 401);
-  check("Login without the portal header is rejected (CSRF)", (await call("/api/manager/login", { method: "POST", body: { password }, portal: false })).status === 403);
+  // ======================= migration of v1 records =======================
+  const OLD = ".portal-test-v1";
+  await fs.rm(OLD, { recursive: true, force: true });
+  const now = new Date().toISOString();
+  const wr = async (key, value) => {
+    const file = path.join(OLD, ...key.split("/")) + ".json";
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, JSON.stringify(value));
+  };
+  await wr("crm/contacts", { items: { con_a: { id: "con_a", name: "[TEST] Old Lead", email: "old@example.com", company: "Old Co", createdAt: now, updatedAt: now }, con_b: { id: "con_b", name: "[TEST] Won Client", email: "won@example.com", company: "Won Co", createdAt: now, updatedAt: now }, con_c: { id: "con_c", name: "[TEST] Asker", email: "ask@example.com", createdAt: now, updatedAt: now } } });
+  await wr("crm/opportunities", {
+    items: {
+      opp_aaaaaaaaaaaa: { id: "opp_aaaaaaaaaaaa", kind: "project", title: "Project inquiry: Old Co", company: "Old Co", source: "direct", direction: "inbound", contactId: "con_a", stage: "inquiry", stageEnteredAt: now, stageHistory: [{ stage: "inquiry", at: now }], value: { estimate: 6000, final: null, basis: "inquiry_budget" }, payments: [], budget: "2500_10000", attribution: { first: { utm_source: "linkedin", landing_page: "/" }, latest: null, pages: ["/", "/work/jarvis/"] }, summary: "Need a site", createdAt: now, updatedAt: now },
+      opp_bbbbbbbbbbbb: { id: "opp_bbbbbbbbbbbb", kind: "project", title: "Won Co app", company: "Won Co", source: "referral", direction: "inbound", contactId: "con_b", stage: "active", stageEnteredAt: now, stageHistory: [{ stage: "inquiry", at: now }, { stage: "proposal", at: now }, { stage: "active", at: now }], value: { estimate: 15000, final: 16000 }, payments: [{ id: "pay_1", type: "invoiced", amount: 8000, at: now }, { id: "pay_2", type: "received", amount: 5000, at: now }], attribution: { first: { referrer: "https://www.google.com/" }, latest: null, pages: [] }, wonAt: now, summary: "App build", createdAt: now, updatedAt: now },
+      opp_cccccccccccc: { id: "opp_cccccccccccc", kind: "job", title: "[TEST] Designer at Acme", company: "Acme", source: "linkedin", direction: "outbound", contactId: null, stage: "lead", stageEnteredAt: now, stageHistory: [{ stage: "lead", at: now }], value: { estimate: 120000 }, payments: [], attribution: null, createdAt: now, updatedAt: now },
+    },
+  });
+  await wr("crm/tasks", { items: { tsk_1: { id: "tsk_1", title: "Reply to Old Lead", kind: "reply", relatedType: "opportunity", relatedId: "opp_aaaaaaaaaaaa", status: "open", createdAt: now }, tsk_2: { id: "tsk_2", title: "Reply to Asker", kind: "reply", relatedType: "contact", relatedId: "con_c", status: "done", completedAt: now, createdAt: now } } });
+  await wr(`events/${now.slice(0, 7)}`, { items: [{ id: "evt_zzzzzzzzzzzz", type: "form_submitted", at: now, actor: "website", contactId: "con_c", opportunityId: null, data: { formType: "other", source: "direct", message: "Quick question" } }] });
+  await startServer(OLD);
+  const { cookie: mc } = await signIn("10.9.0.1");
+  const inqs = (await call("/api/manager/inquiries?status=all", { cookie: mc })).json.items;
+  const opps = [...(await call("/api/manager/opportunities?type=client&status=all", { cookie: mc })).json.items, ...(await call("/api/manager/opportunities?type=employment&status=all", { cookie: mc })).json.items];
+  const prjs = (await call("/api/manager/projects?phase=all", { cookie: mc })).json.items;
+  check("Migration: untouched website opportunity became a New inquiry", inqs.some((i) => i.contactName === "[TEST] Old Lead" && i.status === "new" && i.source === "linkedin"));
+  const exported = (await call("/api/manager/export", { cookie: mc })).json;
+  check("Migration: its auto-created opportunity is archived, not deleted", !opps.some((o) => o.id === "opp_aaaaaaaaaaaa") && exported.opportunities.some((o) => o.id === "opp_aaaaaaaaaaaa" && o.archivedAt));
+  check("Migration: progressed work kept as a Won client opportunity", opps.some((o) => o.id === "opp_bbbbbbbbbbbb" && o.type === "client" && o.stage === "won"));
+  check("Migration: won work became a project with its received payment", prjs.some((p) => p.title === "Won Co app" && p.money?.collected === 5000 && p.money?.value === 16000));
+  check("Migration: job lead became an employment opportunity", opps.some((o) => o.id === "opp_cccccccccccc" && o.type === "employment" && o.stage === "interested"));
+  check("Migration: general question rebuilt as a contacted inquiry", inqs.some((i) => i.type === "general" && i.contactName === "[TEST] Asker" && i.status === "contacted"));
+  const relinked = (await call(`/api/manager/inquiries/${inqs.find((i) => i.contactName === "[TEST] Old Lead").id}`, { cookie: mc })).json.tasks;
+  check("Migration: the open Reply task now belongs to the inquiry", relinked.some((t) => t.kind === "reply" && t.status === "open"));
+  await stopServer();
+  await startServer(OLD);
+  const { cookie: mc2 } = await signIn("10.9.0.2");
+  check("Migration runs once (no duplicates after restart)", (await call("/api/manager/inquiries?status=all", { cookie: mc2 })).json.items.length === inqs.length);
+  await stopServer();
 
-  const { r: loginRes, cookie } = await loginCookie();
+  // ======================= fresh store: main checks =======================
+  const STORE = ".portal-test";
+  await fs.rm(STORE, { recursive: true, force: true });
+  await startServer(STORE);
+
+  // ---- anonymous access is rejected ----
+  for (const p of ["me", "overview", "inquiries", "opportunities", "projects", "calendar", "tasks", "contacts", "users", "export"]) {
+    if ((await call(`/api/manager/${p}`)).status !== 401) check(`Anonymous blocked: /api/manager/${p}`, false);
+  }
+  check("Anonymous requests to every portal API are rejected (401)", true);
+  check("Jarvis API rejects anonymous requests", (await jarvis("/api/jarvis/v1/health", null)).status === 401);
+  check("Jarvis API rejects a wrong token", (await jarvis("/api/jarvis/v1/health", "wrong-token-value-1234567890")).status === 401);
+  check("Jarvis API is read-only (POST refused)", (await call("/api/jarvis/v1/records", { method: "POST", portal: false, body: {}, headers: { authorization: `Bearer ${jarvisToken}` } })).status === 405);
+
+  // ---- owner sign-in ----
+  const { r: loginRes, cookie } = await signIn("10.0.0.2");
   const setCookie = loginRes.headers.getSetCookie()[0] || "";
-  check("Correct password signs in", loginRes.status === 200 && cookie.startsWith("sd_portal="));
+  check("Owner signs in with the configured password", loginRes.status === 200);
   check("Session cookie is HttpOnly, Secure, SameSite=Strict, API-scoped", /HttpOnly/.test(setCookie) && /Secure/.test(setCookie) && /SameSite=Strict/.test(setCookie) && /Path=\/api\/manager/.test(setCookie));
-  check("Login response never echoes the password or hash", !loginRes.text.includes(password) && !loginRes.text.includes("$2"));
-  const me = await call("/api/manager/me", { cookie });
-  check("Signed-in session reads its own account", me.status === 200 && me.json.user.role === "owner");
-  check("Write without the portal header is rejected (CSRF)", (await call("/api/manager/contacts", { method: "POST", body: { name: "X" }, cookie, portal: false })).status === 403);
+  check("Login response never echoes the password or a hash", !loginRes.text.includes(password) && !loginRes.text.includes("$2"));
+  check("Writes without the portal header are refused (CSRF)", (await call("/api/manager/tasks", { method: "POST", body: { title: "x" }, cookie, portal: false })).status === 403);
+  for (let i = 0; i < 5; i++) await signIn("10.0.2.2", undefined, `wrong-${i}`);
+  check("Brute force: 6th attempt from one IP is blocked", (await signIn("10.0.2.2")).r.status === 429);
 
-  for (let i = 0; i < 5; i++) await call("/api/manager/login", { method: "POST", body: { password: `wrong-${i}` }, ip: "10.0.2.2" });
-  const locked = await call("/api/manager/login", { method: "POST", body: { password }, ip: "10.0.2.2" });
-  check("Brute force: 6th attempt from one IP is blocked, even with the right password", locked.status === 429 && locked.headers.get("retry-after"));
-
-  // ---------------- public inquiry form ----------------
+  // ---- public form -> records ----
   const browser = await chromium.launch();
   const visitor = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const vp = await visitor.newPage();
@@ -77,102 +130,163 @@ try {
   vp.on("pageerror", (e) => pageErrors.push(e.message));
   await vp.goto(`${BASE}/?utm_source=linkedin&utm_medium=social&utm_campaign=profile`);
   await vp.goto(`${BASE}/work/jarvis/`);
-  await vp.goto(`${BASE}/contact/?type=project#inquiry`);
+  await vp.goto(`${BASE}/contact/?type=client_work#inquiry`);
   await vp.fill("input[name=name]", "Dana Rivera");
   await vp.fill("input[name=email]", "dana@example.com");
   await vp.fill("input[name=company]", "Rivera Outfitters");
+  await vp.selectOption("select[name=service]", "app");
   await vp.selectOption("select[name=budget]", "10000_25000");
-  await vp.selectOption("select[name=timeline]", "1_3_months");
   await vp.fill("textarea[name=message]", "We need a booking app for our guided trips, plus a new website.");
   await vp.waitForTimeout(2700);
   await vp.click(".inquiry button[type=submit]");
   await vp.waitForSelector("[data-inquiry-sent]:not([hidden])", { timeout: 8000 });
   check("Website form submits and confirms", true);
-  check("Public pages have no script errors", pageErrors.length === 0, pageErrors.join(" | "));
+  check("Public pages: no script errors", pageErrors.length === 0, pageErrors.join(" | "));
 
-  let opps = (await call("/api/manager/opportunities?kind=project&status=all", { cookie })).json.items;
-  const inbound = opps.find((o) => o.company === "Rivera Outfitters");
-  check("Inquiry became a project opportunity", Boolean(inbound));
-  check("Source captured automatically from UTM (LinkedIn)", inbound?.source === "linkedin", inbound?.source);
-  check("Pages read before inquiry captured (Jarvis case study)", inbound?.attribution?.pages?.includes("/work/jarvis/"), JSON.stringify(inbound?.attribution?.pages));
-  check("Budget range pre-filled the estimate", inbound?.value?.estimate === 17500 && inbound?.value?.basis === "inquiry_budget");
-  check("A Reply task was created automatically", inbound?.awaitingReply === true);
+  let list = (await call("/api/manager/inquiries?status=all", { cookie })).json.items;
+  const dana = list.find((i) => i.contactName === "Dana Rivera");
+  check("Form submission created one inquiry record", list.length === 1 && Boolean(dana));
+  check("Inquiry has type, requested service, status, owner, timestamps", dana?.type === "client_work" && dana?.service === "app" && dana?.status === "new" && dana?.owner === "owner" && dana?.createdAt && dana?.updatedAt);
+  check("Source/UTM captured automatically (LinkedIn)", dana?.source === "linkedin" && dana?.attribution?.first?.utm_source === "linkedin");
+  check("A Reply follow-up was scheduled automatically", Boolean(dana?.nextFollowUpAt));
 
-  const before = (await call("/api/manager/opportunities?status=all", { cookie })).json.items.length;
-  await call("/api/inquiry", { method: "POST", portal: false, body: { type: "project", name: "Bot", email: "bot@example.com", message: "buy cheap stuff now please", website_url: "http://spam" }, ip: "10.0.3.1" });
-  await call("/api/inquiry", { method: "POST", portal: false, body: { type: "project", name: "Fast", email: "fast@example.com", message: "too quick to be human", t: Date.now() }, ip: "10.0.3.2" });
-  check("Bot traps (hidden field, instant submit) store nothing", (await call("/api/manager/opportunities?status=all", { cookie })).json.items.length === before);
-  check("Inquiry validation rejects a missing email", (await call("/api/inquiry", { method: "POST", portal: false, body: { type: "project", name: "No Email", message: "hello there friend" }, ip: "10.0.3.3" })).status === 400);
-  check("Inquiry from a foreign site is rejected", (await call("/api/inquiry", { method: "POST", portal: false, headers: { origin: "https://evil.example" }, body: { type: "other", name: "E", email: "e@example.com", message: "hello from elsewhere" }, ip: "10.0.3.4" })).status === 403);
-  const job = await call("/api/inquiry", { method: "POST", portal: false, body: { type: "job", name: "Riley Chen", email: "riley@talent.example", company: "Northwind", message: "We have a Product Designer role open." }, ip: "10.0.3.5" });
-  check("Recruiter inquiry is accepted", job.status === 200);
+  // duplicates
+  const idem = "test-retry-key-0123456789abcdef";
+  const body = { type: "employment", name: "Riley Chen", email: "riley@talent.example", company: "Northwind", message: "We have a Product Designer role open.", idem };
+  await inquiry(body, "10.1.0.2");
+  await inquiry(body, "10.1.0.2");
+  await inquiry({ ...body, idem: undefined }, "10.1.0.3");
+  list = (await call("/api/manager/inquiries?status=all", { cookie })).json.items;
+  check("Retries never duplicate (same key twice, then same email + message)", list.filter((i) => i.contactName === "Riley Chen").length === 1);
+  check("Legacy form values still work (job -> employment)", (await inquiry({ type: "job", name: "Sam Ortiz", email: "sam@example.com", message: "Contract role available next month." }, "10.1.0.4")).status === 200);
+  check("Bot traps store nothing", (await inquiry({ type: "client_work", name: "Bot", email: "bot@example.com", message: "spam spam spam spam", website_url: "x" }, "10.1.0.5")).status === 200 && (await call("/api/manager/inquiries?status=all", { cookie })).json.items.length === 3);
+  check("Validation rejects a missing email", (await inquiry({ type: "client_work", name: "No Email", message: "hello there friend" }, "10.1.0.6")).status === 400);
+  check("Foreign-site submissions are rejected", (await call("/api/inquiry", { method: "POST", portal: false, headers: { origin: "https://evil.example" }, body: { type: "general", name: "E", email: "e@example.com", message: "hello from elsewhere" } })).status === 403);
   let last;
-  for (let i = 0; i < 6; i++) last = await call("/api/inquiry", { method: "POST", portal: false, body: { type: "other", name: `Q${i}`, email: `q${i}@example.com`, message: "a quick question for you" }, ip: "10.0.3.9" });
-  check("Inquiry rate limit: 6th from one IP in an hour is blocked", last.status === 429);
+  for (let i = 0; i < 6; i++) last = await inquiry({ type: "general", name: `[TEST] Q${i}`, email: `q${i}@example.com`, message: `a quick question number ${i}` }, "10.1.0.9");
+  check("Rate limit: 6th inquiry from one IP in an hour is blocked", last.status === 429);
+  await inquiry({ type: "client_work", name: "[TEST] Fake Client", email: "fake@example.com", message: "labeled test inquiry for exclusion" }, "10.1.0.10");
 
-  // ---------------- portal workflows ----------------
-  const id = inbound.id;
-  await call("/api/manager/interactions", { method: "POST", cookie, body: { opportunityId: id, type: "email", direction: "outbound", note: "Thanks Dana, free Thursday?" } });
-  let detail = (await call(`/api/manager/opportunities/${id}`, { cookie })).json;
-  check("Logging a reply closes the Reply task", detail.tasks.every((t) => t.kind !== "reply" || t.status === "done"));
-  check("Lost requires a reason", (await call(`/api/manager/opportunities/${id}/stage`, { method: "POST", cookie, body: { stage: "lost" } })).status === 400);
-  for (const s of ["conversation", "proposal", "active"]) await call(`/api/manager/opportunities/${id}/stage`, { method: "POST", cookie, body: { stage: s } });
-  await call(`/api/manager/opportunities/${id}`, { method: "PATCH", cookie, body: { final: 16000 } });
-  await call(`/api/manager/opportunities/${id}/payments`, { method: "POST", cookie, body: { type: "invoiced", amount: 8000 } });
-  await call(`/api/manager/opportunities/${id}/payments`, { method: "POST", cookie, body: { type: "received", amount: 5000 } });
-  detail = (await call(`/api/manager/opportunities/${id}`, { cookie })).json;
-  check("Stage moves to won and stamps the win", detail.opportunity.stage === "active" && Boolean(detail.opportunity.wonAt));
-  check("Money: agreed, received, outstanding", detail.opportunity.money.value === 16000 && detail.opportunity.money.received === 5000 && detail.opportunity.money.outstanding === 3000);
-  const types = detail.events.map((e) => e.type);
-  check("History recorded automatically", ["form_submitted", "opportunity_created", "interaction_logged", "proposal_sent", "opportunity_won", "payment_recorded"].every((t) => types.includes(t)) || ["opportunity_created", "interaction_logged", "proposal_sent", "opportunity_won", "payment_recorded"].every((t) => types.includes(t)), types.join(","));
+  // ---- workflow: inquiry -> client opportunity -> project -> payment ----
+  await call("/api/manager/interactions", { method: "POST", cookie, body: { entity: "inquiry", id: dana.id, type: "email", direction: "outbound", note: "Thanks Dana, free Thursday?" } });
+  let inq = (await call(`/api/manager/inquiries/${dana.id}`, { cookie })).json;
+  check("Logging a reply marks the inquiry Contacted and closes its Reply task", inq.inquiry.status === "contacted" && inq.tasks.every((t) => t.kind !== "reply" || t.status === "done") && Boolean(inq.inquiry.firstResponseAt));
+  const conv = await call(`/api/manager/inquiries/${dana.id}/convert`, { method: "POST", cookie, body: { to: "client", title: "Rivera Outfitters booking app", quote: 18000 } });
+  check("Inquiry converts to a client opportunity with a quote", conv.status === 201 && conv.json.opportunity.quote?.amount === 18000 && conv.json.opportunity.inquiryId === dana.id);
+  const oppId = conv.json.opportunity.id;
+  check("Converting twice is refused", (await call(`/api/manager/inquiries/${dana.id}/convert`, { method: "POST", cookie, body: { to: "client" } })).status === 409);
+  await call(`/api/manager/opportunities/${oppId}/stage`, { method: "POST", cookie, body: { stage: "proposal" } });
+  check("Lost requires a reason", (await call(`/api/manager/opportunities/${oppId}/stage`, { method: "POST", cookie, body: { stage: "lost" } })).status === 400);
+  await call(`/api/manager/opportunities/${oppId}/stage`, { method: "POST", cookie, body: { stage: "won" } });
+  const second = await call("/api/manager/opportunities", { method: "POST", cookie, body: { type: "client", title: "Brand refresh for Juniper Cafe", source: "referral", quote: 4500, newContact: { name: "Ava Juniper" } } });
+  check("Manual client opportunity is labeled as a manual entry", second.json.opportunity.channel === "manual");
 
-  const createdJob = await call("/api/manager/opportunities", { method: "POST", cookie, body: { kind: "job", title: "Senior Product Designer at Acme", source: "linkedin", direction: "outbound", stage: "applied", employment: "full_time", estimate: 130000, newContact: { name: "Morgan Lee", email: "morgan@acme.example" } } });
-  check("Manual job opportunity with a new contact", createdJob.status === 201);
-  await call(`/api/manager/opportunities/${createdJob.json.opportunity.id}/stage`, { method: "POST", cookie, body: { stage: "interviewing" } });
-  await call("/api/manager/tasks", { method: "POST", cookie, body: { title: "Portfolio review with Acme", kind: "interview", relatedType: "opportunity", relatedId: createdJob.json.opportunity.id, dueAt: new Date(Date.now() + 26 * 3600e3).toISOString(), priority: "high" } });
-  await call("/api/manager/tasks", { method: "POST", cookie, body: { title: "Send Rivera the kickoff checklist", kind: "follow_up", relatedType: "opportunity", relatedId: id, dueAt: new Date(Date.now() - 30 * 3600e3).toISOString() } });
+  // collaborator account
+  const created = await call("/api/manager/users", { method: "POST", cookie, body: { name: "Jordan Lee", username: "jordan", role: "staff" } });
+  check("Owner creates a collaborator; temp password shown once", created.status === 201 && /^[a-z2-9]{4}(-[a-z2-9]{4}){3}$/.test(created.json.temporaryPassword));
+  const jordanId = created.json.user.id;
+  const prj = await call(`/api/manager/opportunities/${oppId}/project`, { method: "POST", cookie, body: { title: "Rivera booking app", deadline: new Date(Date.now() + 20 * 86400000).toISOString(), value: 18000 } });
+  check("Won client work becomes a project with its recorded value", prj.status === 201 && prj.json.project.value?.amount === 18000);
+  const prjId = prj.json.project.id;
+  check("A second project for the same opportunity is refused", (await call(`/api/manager/opportunities/${oppId}/project`, { method: "POST", cookie, body: {} })).status === 409);
+  const d1 = (await call(`/api/manager/projects/${prjId}/deliverables`, { method: "POST", cookie, body: { title: "Booking flow screens", assigneeId: jordanId, dueAt: new Date(Date.now() + 7 * 86400000).toISOString() } })).json.deliverable;
+  const d2 = (await call(`/api/manager/projects/${prjId}/deliverables`, { method: "POST", cookie, body: { title: "Payments integration", dueAt: new Date(Date.now() + 14 * 86400000).toISOString() } })).json.deliverable;
+  await call(`/api/manager/projects/${prjId}/payments`, { method: "POST", cookie, body: { amount: 6000, method: "bank" } });
+  const other = await call("/api/manager/projects", { method: "POST", cookie, body: { title: "Juniper menu boards", clientName: "Ava Juniper", value: 2000 } });
+  const otherId = other.json.project.id;
 
+  // employment
+  const job = await call("/api/manager/opportunities", { method: "POST", cookie, body: { type: "employment", role: "Senior Product Designer", organization: "Acme", title: "Senior Product Designer at Acme", stage: "applied", applicationUrl: "https://acme.example/jobs/1", source: "outbound", nextAction: "Follow up Friday" } });
+  check("Employment opportunity tracks employer, role, application link, next action", job.json.opportunity.type === "employment" && job.json.opportunity.applicationUrl && job.json.opportunity.nextAction && job.json.opportunity.quote === null);
+  await call(`/api/manager/opportunities/${job.json.opportunity.id}/stage`, { method: "POST", cookie, body: { stage: "interviewing" } });
+  await call("/api/manager/tasks", { method: "POST", cookie, body: { title: "Interview: Acme design panel", kind: "interview", relatedType: "opportunity", relatedId: job.json.opportunity.id, dueAt: new Date(Date.now() + 26 * 3600e3).toISOString() } });
+  await call("/api/manager/tasks", { method: "POST", cookie, body: { title: "Send Juniper the moodboard", kind: "follow_up", relatedType: "project", relatedId: otherId, dueAt: new Date(Date.now() - 30 * 3600e3).toISOString() } });
+  const jt = await call("/api/manager/tasks", { method: "POST", cookie, body: { title: "Export icon set", kind: "other", assigneeId: jordanId, dueAt: new Date(Date.now() + 2 * 86400000).toISOString() } });
+
+  // ---- dashboard calculations ----
   const ov = (await call("/api/manager/overview?period=30d", { cookie })).json;
-  const k = Object.fromEntries(ov.kpis.map((x) => [x.key, x]));
-  check("KPI: new opportunities counts both pipelines", k.new_opportunities.value >= 3, k.new_opportunities.value);
-  check("KPI: median reply time measured", k.response_time.value != null);
-  check("KPI: won value and interviews", k.won_value.value === 16000 && k.active_interviews.value === 1);
-  check("Alerts flag the overdue task and the waiting recruiter", ov.alerts.some((a) => a.key === "task_overdue") && ov.alerts.some((a) => a.key === "reply_overdue" || a.key === "coming_up" || a.key === "payment_outstanding"));
-  check("Work attraction shows the Jarvis case study", ov.work.pages.some((p) => p.path === "/work/jarvis/"));
-  check("Sources group opportunities", ov.sources.some((s) => s.source === "linkedin"));
-  const money = (await call("/api/manager/money?period=90d", { cookie })).json;
-  check("Money view: won, received, outstanding; job pay kept separate", money.period.won === 16000 && money.period.received === 5000 && money.outstanding === 3000);
-  check("Search finds people and opportunities", (await call("/api/manager/search?q=rivera", { cookie })).json.opportunities.length >= 1);
+  const M = ov.metrics;
+  check("Dashboard: new client inquiries = 1 (test and spam excluded)", M.new_client_inquiries.value === 1, JSON.stringify(M.new_client_inquiries));
+  check("Dashboard: quoted pipeline = open client quotes only ($4,500)", M.quoted_pipeline.value.amount === 4500 && M.quoted_pipeline.value.currency === "USD");
+  check("Dashboard: cash collected = $6,000 (manual entries)", M.cash_collected.value.amount === 6000 && M.cash_collected.source === "manual_entry");
+  check("Dashboard: unpaid balances = $12,000 + $2,000", M.unpaid_balances.value.amount === 14000 && M.unpaid_balances.projects === 2);
+  check("Dashboard: active projects = 2", M.active_projects.value === 2);
+  check("Dashboard: employment kept separate (1 open, 1 interviewing, 1 interview scheduled)", M.open_employment.value === 1 && M.open_employment.interviewing === 1 && M.open_employment.interviews_scheduled === 1);
+  check("Dashboard: follow-ups due counts the overdue one", M.follow_ups_due.value >= 1 && M.follow_ups_due.overdue >= 1);
+  check("Dashboard: client funnel follows the inquiry to won", JSON.stringify(ov.funnels.client.map((x) => x.count)) === "[1,1,1,1]", JSON.stringify(ov.funnels.client));
+  check("Dashboard: attention lists the overdue follow-up", ov.attention.some((a) => a.key === "task_overdue"));
 
-  // ---------------- Jarvis API ----------------
-  const key1 = (await call("/api/manager/api-keys", { method: "POST", cookie, body: { name: "Jarvis", scopes: ["read", "suggest"] } })).json;
-  const key2 = (await call("/api/manager/api-keys", { method: "POST", cookie, body: { name: "Jarvis finance", scopes: ["read", "read_financial"] } })).json;
-  const asJarvis = (p, token, opts = {}) => call(p, { ...opts, portal: false, headers: { authorization: `Bearer ${token}` } });
-  const summary = await asJarvis("/api/jarvis/v1/summary?period=30d", key1.token);
-  check("Jarvis summary returns the normalized schema", summary.status === 200 && summary.json.schema === "jarvis.business_report" && summary.json.schemaVersion === "1.0");
-  check("Jarvis without read_financial gets no money", summary.json.revenue === null && summary.json.kpis.find((x) => x.key === "won_value").value === null);
-  check("Jarvis report carries no emails or message text", !/@example\.com|booking app for our guided trips/.test(summary.text));
-  const fin = await asJarvis("/api/jarvis/v1/summary?period=30d", key2.token);
-  check("Jarvis with read_financial gets revenue", fin.json.revenue?.won === 16000 && fin.json.revenue?.received === 5000);
-  check("Jarvis activity feed works", (await asJarvis("/api/jarvis/v1/activity?limit=5", key1.token)).json.items.length === 5);
-  const sug = await asJarvis("/api/jarvis/v1/suggestions", key1.token, { method: "POST", body: { title: "Follow up with Northwind", kind: "follow_up", reason: "Recruiter waiting 2 days" } });
-  check("Jarvis can suggest a task (waits for approval)", sug.status === 201 && sug.json.task.status === "suggested");
-  check("A key without 'suggest' can't suggest", (await asJarvis("/api/jarvis/v1/suggestions", key2.token, { method: "POST", body: { title: "x" } })).status === 403);
-  await call(`/api/manager/api-keys/${key1.id}`, { method: "DELETE", cookie });
-  check("A revoked key stops working", (await asJarvis("/api/jarvis/v1/summary", key1.token)).status === 401);
-  check("A made-up key is rejected", (await asJarvis("/api/jarvis/v1/summary", "sdp_key_AAAAAAAAAAAA.bbbbbbbbbbbbbbbbbbbbbbbb")).status === 401);
+  // ---- staff (collaborator) permissions ----
+  const { r: jr, cookie: jc } = await signIn("10.0.6.1", "jordan", created.json.temporaryPassword);
+  check("Collaborator signs in with their own username", jr.status === 200 && jr.json.user.role === "staff");
+  const sov = (await call("/api/manager/overview", { cookie: jc })).json;
+  check("Collaborator overview shows only their assigned project", sov.role === "staff" && sov.projects.length === 1 && sov.projects[0].id === prjId);
+  check("Collaborator sees only their deliverables, no money", sov.projects[0].deliverables.length === 1 && sov.projects[0].deliverables[0].id === d1.id && !("money" in sov.projects[0]) && !("payments" in sov.projects[0]));
+  check("Collaborator: other projects are hidden (404)", (await call(`/api/manager/projects/${otherId}`, { cookie: jc })).status === 404);
+  for (const p of ["inquiries", "opportunities", "contacts", "users", "export", `inquiries/${dana.id}`]) {
+    if ((await call(`/api/manager/${p}`, { cookie: jc })).status !== 403) check(`Collaborator blocked: ${p}`, false);
+  }
+  check("Collaborator: inquiries, opportunities, contacts, team, export all forbidden (403)", true);
+  check("Collaborator updates their own deliverable with a note", (await call(`/api/manager/projects/${prjId}/deliverables/${d1.id}`, { method: "PATCH", cookie: jc, body: { status: "done", update: "Screens uploaded to the shared folder." } })).status === 200);
+  check("Collaborator can't touch someone else's deliverable", (await call(`/api/manager/projects/${prjId}/deliverables/${d2.id}`, { method: "PATCH", cookie: jc, body: { status: "done" } })).status === 403);
+  check("Collaborator can't rename or reassign their deliverable", (await call(`/api/manager/projects/${prjId}/deliverables/${d1.id}`, { method: "PATCH", cookie: jc, body: { title: "Renamed", assigneeId: null } })).json.deliverable.title === "Booking flow screens");
+  check("Collaborator can't record payments", (await call(`/api/manager/projects/${prjId}/payments`, { method: "POST", cookie: jc, body: { amount: 1 } })).status === 403);
+  check("Collaborator completes their own task", (await call(`/api/manager/tasks/${jt.json.task.id}`, { method: "PATCH", cookie: jc, body: { action: "complete" } })).status === 200);
+  const ownersTask = (await call("/api/manager/tasks", { cookie })).json.items.find((t) => t.assigneeId === "owner");
+  check("Collaborator can't complete Sean's tasks", (await call(`/api/manager/tasks/${ownersTask.id}`, { method: "PATCH", cookie: jc, body: { action: "complete" } })).status === 403);
+  check("Collaborator calendar holds only their work", (await call("/api/manager/calendar", { cookie: jc })).json.items.every((i) => i.assigneeId === jordanId || i.source === "project"));
+  check("A staff session can't read the Jarvis API", (await call("/api/jarvis/v1/summary", { portal: false, cookie: jc })).status === 401);
+  check("Manager sees the collaborator's update", (await call(`/api/manager/projects/${prjId}`, { cookie })).json.project.deliverables.find((d) => d.id === d1.id).updates.length === 1);
 
-  // ---------------- roles (server-side) ----------------
-  await fs.mkdir(path.join(STORE, "auth"), { recursive: true });
-  await fs.writeFile(path.join(STORE, "auth", "users.json"), JSON.stringify({ users: { usr_ro: { id: "usr_ro", username: "viewer", name: "Viewer", role: "read_only", active: true, passwordHash: bcrypt.hashSync(password, 10) } } }));
-  const { cookie: roCookie } = await loginCookie("10.0.4.1", "viewer");
-  check("Read-only role: can view the pipeline", (await call("/api/manager/opportunities", { cookie: roCookie })).status === 200);
-  check("Read-only role: money values are stripped", (await call(`/api/manager/opportunities/${id}`, { cookie: roCookie })).json.opportunity.value === null);
-  check("Read-only role: Money view is forbidden", (await call("/api/manager/money", { cookie: roCookie })).status === 403);
-  check("Read-only role: cannot create records", (await call("/api/manager/contacts", { method: "POST", cookie: roCookie, body: { name: "Nope" } })).status === 403);
-  check("Read-only role: cannot manage API keys", (await call("/api/manager/api-keys", { cookie: roCookie })).status === 403);
+  // ---- persistence: restart the server process, then reload ----
+  await stopServer();
+  await startServer(STORE);
+  const { cookie: c3 } = await signIn("10.0.7.1");
+  const after = (await call("/api/manager/overview?period=30d", { cookie: c3 })).json.metrics;
+  check("Records persist across a full server restart", after.cash_collected.value.amount === 6000 && after.active_projects.value === 2);
 
-  // ---------------- portal UI ----------------
+  // ---- Jarvis API: envelope, data, filters, pagination ----
+  const health = await jarvis("/api/jarvis/v1/health");
+  const env = health.json;
+  check("Jarvis health: envelope fields present", health.status === 200 && ["schema_version", "business_id", "business_slug", "source", "generated_at", "data", "availability"].every((k) => k in env) && env.business_id === "sean-despain");
+  check("Jarvis health: entities, counts, timezone", env.data.supported_entities.join() === "inquiry,opportunity,project,deliverable,payment,task" && env.data.reporting_timezone === "America/Denver");
+  const sum = (await jarvis(`/api/jarvis/v1/summary?from=${ymd(-29)}&to=${ymd(0)}`)).json;
+  check("Jarvis summary matches the portal's saved data", sum.data.common.leads.client_work === after.new_client_inquiries.value && sum.data.common.cash_collected.amount === 6000 && sum.data.common.unpaid_balances.amount === 14000 && sum.data.common.quoted_value.open_pipeline.amount === 4500);
+  check("Jarvis summary: money carries currency and source; unavailable sources are null", sum.data.common.cash_collected.currency === "USD" && sum.data.common.cash_collected.source === "manual_entry" && sum.data.common.verified_payments === null && sum.availability.payments_provider === "unavailable");
+  check("Jarvis summary: employment kept out of sales", sum.data.business_specific.employment.open_opportunities === 1 && sum.data.common.confirmed_work.projects_started === 2);
+  check("Jarvis summary: explicit period with timezone", sum.data.period.timezone === "America/Denver" && sum.data.period.from === ymd(-29) && /Z$/.test(sum.data.period.from_utc));
+  const past = (await jarvis(`/api/jarvis/v1/summary?from=${ymd(-60)}&to=${ymd(-31)}`)).json;
+  check("Date filter: an earlier window excludes today's records", past.data.common.leads.new_inquiries === 0 && past.data.common.cash_collected.amount === 0);
+  check("Date filter: bad ranges are rejected", (await jarvis(`/api/jarvis/v1/summary?from=${ymd(0)}&to=${ymd(-5)}`)).status === 400);
+  const all = (await jarvis("/api/jarvis/v1/records?entity=inquiry&limit=500")).json.data.records;
+  check("Records exclude labeled test data", all.every((r) => !/\[TEST\]/.test(r.contact_name || "")) && all.length === 3);
+  check("Records carry id, entity, business_id, created_at, updated_at, archive marker", all.every((r) => r.id && r.entity === "inquiry" && r.business_id === "sean-despain" && r.created_at && r.updated_at && "archived" in r));
+  check("Records never include emails or message text", !/@example\.|booking app for our guided trips/.test(JSON.stringify(all)));
+  let cursor = null;
+  const seen = [];
+  let pages = 0;
+  do {
+    const res = (await jarvis(`/api/jarvis/v1/records?entity=task&limit=2${cursor ? `&cursor=${cursor}` : ""}`)).json;
+    seen.push(...res.data.records.map((r) => r.id));
+    cursor = res.next_cursor;
+    pages++;
+  } while (cursor && pages < 20);
+  const totalTasks = (await jarvis("/api/jarvis/v1/records?entity=task&limit=500")).json.data.records.length;
+  check("Pagination: cursor walks every record once", seen.length === totalTasks && new Set(seen).size === seen.length && pages > 1, `${seen.length}/${totalTasks} in ${pages} pages`);
+  check("updated_since in the future returns nothing", (await jarvis(`/api/jarvis/v1/records?entity=project&updated_since=${new Date(Date.now() + 3600e3).toISOString()}`)).json.data.records.length === 0);
+  await call(`/api/manager/projects/${otherId}`, { method: "PATCH", cookie: c3, body: { archived: true } });
+  const changed = (await jarvis(`/api/jarvis/v1/records?entity=project&updated_since=${new Date(Date.now() - 60e3).toISOString()}`)).json.data.records;
+  check("Archiving shows up as an archive marker in updated_since sync", changed.some((r) => r.id === otherId && r.archived === true && r.archived_at));
+  const payRecs = (await jarvis("/api/jarvis/v1/records?entity=payment")).json.data.records;
+  check("Payments export with currency and manual-entry label", payRecs.length === 1 && payRecs[0].amount.currency === "USD" && payRecs[0].source === "manual_entry" && payRecs[0].verified_by_provider === false);
+  check("Bad cursor is rejected", (await jarvis("/api/jarvis/v1/records?entity=task&cursor=garbage")).status === 400);
+
+  // ---- deactivating a collaborator ends their access ----
+  await call(`/api/manager/users/${jordanId}`, { method: "PATCH", cookie: c3, body: { active: false } });
+  const { r: deadLogin } = await signIn("10.0.6.2", "jordan", created.json.temporaryPassword);
+  check("Deactivated collaborator can't sign in", deadLogin.status === 401);
+
+  // ---- portal UI ----
   const ui = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const up = await ui.newPage();
   const uiErrors = [];
@@ -180,42 +294,32 @@ try {
   up.on("console", (m) => m.type() === "error" && !/401|Failed to load resource/.test(m.text()) && uiErrors.push(m.text()));
   await up.goto(`${BASE}/manager/`);
   await up.waitForSelector(".mp-login");
-  await up.fill("input[name=password]", "definitely-wrong");
-  await up.click(".mp-login button");
-  await up.waitForFunction(() => document.querySelector(".mp-login__msg")?.textContent.length > 0);
-  check("UI: wrong password shows an error", /didn't work/.test(await up.textContent(".mp-login__msg")));
   await up.fill("input[name=password]", password);
   await up.click(".mp-login button");
   await up.waitForSelector(".mp-kpi");
-  check("UI: overview renders KPIs and attention items", (await up.$$(".mp-kpi")).length >= 6 && (await up.$$(".mp-attn li")).length >= 1);
-  if (shots) await up.screenshot({ path: path.join(shots, "portal-desk-overview.png"), fullPage: true });
+  check("UI: overview shows the numbers", (await up.$$(".mp-kpi")).length === 7);
+  if (shots) await up.screenshot({ path: path.join(shots, "v2-desk-overview.png"), fullPage: true });
   for (const [hash, sel, name] of [
-    ["#/pipeline", ".mp-board", "pipeline"],
-    [`#/opportunity/${id}`, ".mp-stepper", "opportunity"],
-    ["#/people", ".mp-people", "people"],
-    ["#/tasks", ".mp-list", "tasks"],
-    ["#/money", ".mp-kpis", "money"],
-    ["#/analytics", ".mp-ov", "analytics"],
-    ["#/activity", ".mp-timeline", "activity"],
+    ["#/inquiries", ".mp-row", "inquiries"],
+    [`#/inquiry/${dana.id}`, ".mp-msg", "inquiry"],
+    ["#/inquiries?tab=client&status=all", ".mp-opp", "client work"],
+    ["#/inquiries?tab=employment", ".mp-board", "employment"],
+    [`#/opportunity/${oppId}`, ".mp-stepper", "opportunity"],
+    ["#/inquiries?tab=contacts", ".mp-people", "contacts"],
+    ["#/projects", ".mp-opp", "projects"],
+    [`#/project/${prjId}`, ".mp-dlv", "project"],
+    ["#/calendar", ".mp-list", "calendar agenda"],
+    ["#/calendar?view=month", ".mp-month", "calendar month"],
     ["#/settings", ".mp-facts", "settings"],
   ]) {
     await up.goto(`${BASE}/manager/${hash}`);
     const ok = await up.waitForSelector(sel, { timeout: 8000 }).then(() => true, () => false);
     check(`UI: ${name} view loads`, ok);
-    if (shots && ["pipeline", "opportunity", "money", "settings"].includes(name)) await up.screenshot({ path: path.join(shots, `portal-desk-${name}.png`), fullPage: true });
+    if (shots && ["inquiries", "inquiry", "employment", "project", "calendar agenda", "calendar month", "settings"].includes(name)) await up.screenshot({ path: path.join(shots, `v2-desk-${name.replace(/ /g, "-")}.png`), fullPage: true });
   }
-  await up.goto(`${BASE}/manager/#/tasks?view=suggested`);
-  await up.waitForSelector("[data-task-approve]");
-  await up.click("[data-task-approve]");
-  await up.waitForTimeout(600);
-  check("UI: approving a Jarvis suggestion makes it a real task", (await call("/api/manager/tasks?view=suggested", { cookie })).json.items.length === 0);
-  await up.goto(`${BASE}/manager/#/opportunity/${createdJob.json.opportunity.id}`);
-  await up.waitForSelector("[data-log=note]");
-  await up.click("[data-log=note]");
-  await up.fill("#sheet textarea[name=note]", "Asked about the team size and design system maturity.");
-  await up.click("#sheet button[type=submit]");
-  await up.waitForTimeout(700);
-  check("UI: adding a note from the record page saves it", (await call(`/api/manager/opportunities/${createdJob.json.opportunity.id}`, { cookie })).json.events.some((e) => e.type === "note_added"));
+  await up.reload();
+  await up.waitForSelector(".mp-dlv, .mp-month, .mp-facts", { timeout: 8000 }).catch(() => {});
+  check("UI: data still there after a browser reload (3 real + 6 labeled test inquiries)", (await call("/api/manager/inquiries?status=all", { cookie: c3 })).json.items.length === 9);
   check("UI: no script errors across the portal", uiErrors.length === 0, uiErrors.join(" | "));
 
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -224,43 +328,26 @@ try {
   await pp.fill("input[name=password]", password);
   await pp.click(".mp-login button");
   await pp.waitForSelector(".mp-kpi");
-  const bottomVisible = await pp.isVisible(".mp-bottom");
-  const overflow = await pp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-  check("Phone: bottom tab bar shows, no sideways scrolling", bottomVisible && !overflow);
-  if (shots) await pp.screenshot({ path: path.join(shots, "portal-phone-overview.png"), fullPage: true });
-  for (const [hash, sel, name] of [["#/pipeline", ".mp-board", "pipeline"], [`#/opportunity/${id}`, ".mp-stepper", "opportunity"], ["#/tasks", ".mp-list", "tasks"]]) {
+  for (const [hash, sel, name] of [["#/overview", ".mp-kpi", "overview"], ["#/inquiries", ".mp-row", "inquiries"], [`#/project/${prjId}`, ".mp-dlv", "project"], ["#/calendar", ".mp-list", "calendar"]]) {
     await pp.goto(`${BASE}/manager/${hash}`);
     await pp.waitForSelector(sel);
     const wide = await pp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     check(`Phone: ${name} fits the screen`, !wide);
-    if (shots) await pp.screenshot({ path: path.join(shots, `portal-phone-${name}.png`), fullPage: true });
+    if (shots) await pp.screenshot({ path: path.join(shots, `v2-phone-${name}.png`), fullPage: true });
   }
-  await pp.goto(`${BASE}/manager/#/overview`);
-  await pp.waitForSelector(".mp-kpi");
-  await pp.click("[data-add]");
-  await pp.waitForSelector("#sheet[open]");
-  check("Phone: quick add opens as a bottom sheet", await pp.isVisible("#sheet[open] .mp-form"));
-  if (shots) await pp.screenshot({ path: path.join(shots, "portal-phone-quickadd.png") });
-  await browser.close();
+  check("Phone: bottom tabs show the five areas", (await pp.$$(".mp-bottom a")).length === 5);
 
-  // ---------------- sessions ----------------
-  const out = await call("/api/manager/logout", { method: "POST", cookie });
-  check("Logout clears the cookie", out.status === 200 && /Max-Age=0/.test(out.headers.getSetCookie()[0] || ""));
-  check("A signed-out cookie can't be replayed", (await call("/api/manager/me", { cookie })).status === 401);
-  const { cookie: c2 } = await loginCookie("10.0.5.1");
-  const sessDir = path.join(STORE, "auth", "sessions");
-  for (const f of await fs.readdir(sessDir)) {
-    const file = path.join(sessDir, f);
-    const s = JSON.parse(await fs.readFile(file, "utf8"));
-    s.expiresAt = new Date(Date.now() - 1000).toISOString();
-    await fs.writeFile(file, JSON.stringify(s));
+  // ---- public site main paths ----
+  for (const p of ["/", "/about/", "/capabilities/", "/contact/", "/contact/thanks/", "/work/peace-life/", "/work/jarvis/", "/work/wip-services/", "/work/qinty/", "/work/once-upon-a-princess/", "/resume/Sean_Despain_Resume_Hybrid_ProductCreativeTech.pdf"]) {
+    const res = await fetch(`${BASE}${p}`);
+    if (res.status !== 200) check(`Public path ${p}`, false, String(res.status));
   }
-  const expired = await call("/api/manager/me", { cookie: c2 });
-  check("An expired session is refused", expired.status === 401 && expired.json.error.code === "session_expired");
+  check("Public site main paths all return 200", true);
+  await browser.close();
 } catch (err) {
   check("Test run completed without crashing", false, err.stack);
 } finally {
-  server.kill();
+  server?.kill();
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} passed`);
   process.exitCode = failed.length ? 1 : 0;

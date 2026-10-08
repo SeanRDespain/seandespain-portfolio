@@ -4,6 +4,15 @@ import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 
 // Same keys the server validates against (netlify/lib/model.js)
+const services = [
+  ["app", "An app"],
+  ["website", "A website"],
+  ["software", "Business software"],
+  ["brand", "Brand identity"],
+  ["marketing", "Marketing & launch"],
+  ["multiple", "Several of these"],
+  ["not_sure", "Not sure yet"],
+];
 const budgets = [
   ["under_2500", "Under $2,500"],
   ["2500_10000", "$2,500 to $10,000"],
@@ -40,9 +49,9 @@ const heard = [
         <div data-inquiry-fields>
           <fieldset class="inquiry__type">
             <legend>What's this about?</legend>
-            <label><input type="radio" name="type" value="project" checked required /> <span>A project I need built</span></label>
-            <label><input type="radio" name="type" value="job" /> <span>A job or contract role</span></label>
-            <label><input type="radio" name="type" value="other" /> <span>A question</span></label>
+            <label><input type="radio" name="type" value="client_work" checked required /> <span>A project I need built</span></label>
+            <label><input type="radio" name="type" value="employment" /> <span>A job or contract role</span></label>
+            <label><input type="radio" name="type" value="general" /> <span>A question</span></label>
           </fieldset>
 
           <div class="inquiry__row">
@@ -56,10 +65,19 @@ const heard = [
             </label>
           </div>
 
-          <label class="inquiry__field">
-            <span>Company <em>(optional)</em></span>
-            <input name="company" autocomplete="organization" maxlength="120" />
-          </label>
+          <div class="inquiry__row">
+            <label class="inquiry__field">
+              <span>Company <em>(optional)</em></span>
+              <input name="company" autocomplete="organization" maxlength="120" />
+            </label>
+            <label class="inquiry__field" data-project-only>
+              <span>What do you need? <em>(optional)</em></span>
+              <select name="service">
+                <option value="">Choose one</option>
+                {services.map(([k, label]) => <option value={k}>{label}</option>)}
+              </select>
+            </label>
+          </div>
 
           <div class="inquiry__row" data-project-only>
             <label class="inquiry__field">
@@ -94,6 +112,8 @@ const heard = [
           <!-- bot traps: a field people never see, and the time the form was shown -->
           <label class="inquiry__trap" aria-hidden="true">Website <input name="website_url" tabindex="-1" autocomplete="off" /></label>
           <input type="hidden" name="t" value="" />
+          <!-- one key per form view: a retried or double-clicked send saves once -->
+          <input type="hidden" name="idem" value="" />
 
           <p class="inquiry__status" data-inquiry-status role="alert" hidden></p>
           <button type="submit" class="btn btn--primary">Send it</button>
@@ -175,7 +195,7 @@ const heard = [
   .inquiry__type input:checked + span { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   .inquiry__type input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
   .inquiry__row { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
-  .inquiry__row[hidden] { display: none; }
+  .inquiry__row[hidden], .inquiry__field[hidden] { display: none; }
   @media (min-width: 640px) { .inquiry__row { grid-template-columns: 1fr 1fr; } }
   .inquiry__field { display: grid; gap: 0.35rem; }
   .inquiry__field > span { font-size: var(--step--1); font-weight: 600; }

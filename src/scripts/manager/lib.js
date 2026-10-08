@@ -128,8 +128,10 @@ export const fmt = {
 };
 
 export const label = (listName, key) => (state.config?.[listName] || []).find(([k]) => k === key)?.[1] ?? key ?? "-";
-export const pipeline = (kind) => state.config.pipelines[kind];
-export const stage = (kind, key) => pipeline(kind)?.stages.find((s) => s.key === key);
+export const oppType = (type) => state.config.opportunityTypes[type];
+export const stage = (type, key) => oppType(type)?.stages.find((s) => s.key === key);
+export const userName = (id) => (!id || id === "owner" ? "Sean" : state.me?.users?.find((u) => u.id === id)?.name || "Former collaborator");
+export const isManager = () => can("records.read");
 
 // ---------- icons ----------
 
@@ -143,6 +145,9 @@ export const icon = {
   analytics: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
   activity: svg('<path d="M3 12h4l3-8 4 16 3-8h4"/>'),
   settings: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  inbox: svg('<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/>'),
+  folder: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  calendar: svg('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
   search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   check: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
@@ -183,8 +188,7 @@ export function lineChart(points, { h = 170, color = "#4f5bd5", format = fmt.num
   );
 }
 
-export function columnChart(points, { h = 160, color = "#2f7d5b", format = (v) => fmt.money(v, { compact: true }) } = {}) {
-  const w = 640;
+export function columnChart(points, { h = 160, w = 640, color = "#2f7d5b", format = (v) => fmt.money(v, { compact: true }) } = {}) {
   const pad = { l: 40, r: 6, t: 10, b: 22 };
   const max = Math.max(...points.map((p) => p.value), 1);
   const iw = w - pad.l - pad.r;

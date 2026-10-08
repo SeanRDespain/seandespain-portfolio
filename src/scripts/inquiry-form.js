@@ -10,9 +10,11 @@ if (form) {
   const submit = form.querySelector("button[type=submit]");
   const projectOnly = form.querySelectorAll("[data-project-only]");
   form.elements.t.value = String(Date.now());
+  form.elements.idem.value = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, "");
 
   const params = new URLSearchParams(location.search);
-  const preset = params.get("type");
+  const legacy = { project: "client_work", job: "employment", other: "general" };
+  const preset = legacy[params.get("type")] || params.get("type");
   if (preset && form.querySelector(`input[name=type][value="${preset}"]`)) form.querySelector(`input[name=type][value="${preset}"]`).checked = true;
   const result = params.get("inquiry");
   if (result === "error") showStatus("error", "That didn't send. Please try again, or email me at seandespain@gmail.com.");
@@ -20,7 +22,7 @@ if (form) {
 
   function syncType() {
     const type = form.querySelector("input[name=type]:checked")?.value;
-    projectOnly.forEach((el) => (el.hidden = type !== "project"));
+    projectOnly.forEach((el) => (el.hidden = type !== "client_work"));
   }
   form.addEventListener("change", (e) => {
     if (e.target.name === "type") syncType();
@@ -47,6 +49,7 @@ if (form) {
       if (!res.ok) throw new Error(body?.error?.message || "That didn't send.");
       if (typeof window.gtag === "function") window.gtag("event", "inquiry_submitted", { inquiry_type: data.type });
       form.reset();
+      form.elements.idem.value = "";
       form.classList.add("is-sent");
       form.querySelector("[data-inquiry-sent]").hidden = false;
       form.querySelector("[data-inquiry-fields]").hidden = true;

@@ -69,40 +69,49 @@ Each page is a full page load, so the standard tag records one page view per pag
 routing code. It only reports from `seandespain.com`: localhost, test runs, and the netlify.app
 address load the tag but send nothing.
 
-## Manager portal
+## Business portal
 
-A private CRM and operations portal at `/manager/`, built for this business: client projects and job
-opportunities as two separate pipelines, the people behind them, follow-up tasks, a management view
-of project money, and the analytics that say which work brings opportunity in.
+A private operations portal at `/manager/` for this business. Five areas:
 
-- **Inquiries:** the contact page form posts to `POST /api/inquiry`, which creates the contact,
-  the opportunity (with UTM, referrer, landing page, and the pages read before reaching out), a
-  24-hour Reply task, and the activity history. Logging a reply closes the task and records the
-  response time.
-- **Configuration:** stages, loss reasons, and lists live in `netlify/lib/model.js`.
-- **Storage:** Netlify Blobs (store `sd-portal`), server-side only. Settings → Download all data
-  exports everything as JSON.
-- **Security:** the owner password exists only as a bcrypt hash in `MANAGER_PORTAL_PASSWORD_HASH`.
-  Sessions are opaque HttpOnly/Secure/SameSite=Strict cookies checked on every API call; roles
-  (owner, manager, team member, specialist, read only) are enforced on the server.
-- **Jarvis:** `GET /api/jarvis/v1/summary` and friends return the normalized
-  `jarvis.business_report` (schema 1.0) using an API key created in Settings. Scopes: `read`,
-  `read_financial`, `suggest`.
+- **Overview:** what needs attention, plus seven verified numbers: new client inquiries,
+  follow-ups due, active projects, open employment opportunities and interviews, quoted
+  pipeline, cash collected, and unpaid balances. Client and employment funnels stay separate.
+- **Inquiries & Opportunities:** website form submissions (saved automatically, retry-safe)
+  and manual entries; conversion to client work (proposal, quote) or employment (employer, role,
+  application link, interviews, next action); contacts.
+- **Projects:** won client work with deliverables, deadline, collaborator, recorded value, and
+  payments (manual entries; no payment provider is connected).
+- **Calendar & Tasks:** follow-ups, interviews, client appointments, deadlines, deliverables.
+- **Settings:** account, collaborator accounts, connections, data export.
 
-Environment variables (Netlify → Site configuration → Environment variables, Functions scope):
+Managers (Sean) see everything. Collaborators get their own username and see only the
+projects, deliverables, and tasks assigned to them, without money or client contact details.
+Every API route enforces this on the server. Records named "[TEST] ..." are labeled test data
+and excluded from all reporting and from the Jarvis API.
+
+Code: `netlify/functions` (`inquiry.mjs`, `manager-api.mjs`, `jarvis-api.mjs`) and
+`netlify/lib` (`model.js` holds stages and lists, `crm.js` the records, `metrics.js` the numbers
+and exports, `auth.js` sign-in and roles). Storage: Netlify Blobs store `sd-portal`.
+
+The Jarvis data API (`/api/jarvis/v1/health`, `/summary`, `/records`) is documented in
+**JARVIS-HANDOFF.md**.
+
+Environment variables (Netlify → Site configuration → Environment variables, Functions scope,
+Production):
 
 | Variable | Required | Secret |
 |---|---|---|
-| `MANAGER_PORTAL_PASSWORD_HASH` | yes | yes |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GA4_SEAN_DESPAIN_PROPERTY_ID` | for the Analytics view | key is secret |
+| `MANAGER_PORTAL_PASSWORD_HASH` | yes (owner sign-in) | yes |
+| `JARVIS_SITE_API_TOKEN` | for Jarvis | yes |
 | `RESEND_API_KEY`, `NOTIFY_EMAIL` | for new-inquiry emails | key is secret |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GA4_SEAN_DESPAIN_PROPERTY_ID` | for GA4 numbers in the portal | key is secret |
 
-`npm run hash-password` turns a new password into a hash at a hidden prompt.
+`npm run hash-password` turns a new owner password into a hash at a hidden prompt.
 
-Local: `npm run build`, then `MANAGER_PORTAL_PASSWORD_HASH='<hash of a test password>' npm run portal:dev`
+Local: `npm run build`, then
+`MANAGER_PORTAL_PASSWORD_HASH='<hash of a test password>' JARVIS_SITE_API_TOKEN='<test token>' npm run portal:dev`
 serves the site and functions on port 4510 with storage in `.portal-data/`.
-`node scripts/portal-test.mjs` runs the full end-to-end suite (auth, roles, form, workflows,
-Jarvis API, desktop and phone UI) against a throwaway password.
+`node scripts/portal-test.mjs` runs the full end-to-end suite against a throwaway password.
 
 ## Deploying
 

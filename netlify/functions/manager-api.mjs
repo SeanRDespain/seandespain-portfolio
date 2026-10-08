@@ -1,16 +1,18 @@
-// /api/manager/*: everything the manager portal reads and writes.
+// /api/manager/*: everything the portal reads and writes.
 //
-// Every route names the permission it needs and the session is checked on
-// the server before anything is read, so hiding a button is never the only
-// protection. Money fields are stripped for roles without finance access.
-import { json, errorResponse, readJson, HttpError, v } from "../lib/http.js";
-import { login, logout, requireSession, assertSameOrigin, createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from "../lib/auth.js";
+// Every route names its permission and the session is checked on the server
+// before anything is read. Managers see the whole business. Collaborators
+// (staff) see only projects, deliverables, and tasks assigned to them, with
+// no money and no client contact details, whatever the page asks for.
+import { json, errorResponse, readJson, HttpError } from "../lib/http.js";
+import { login, logout, requireSession, assertSameOrigin, listUsers, createUser, updateUser, jarvisTokenConfigured } from "../lib/auth.js";
 import {
-  loadState, listEvents, createContact, updateContact, createOpportunity, updateOpportunity, changeStage,
-  recordPayment, logInteraction, createTask, updateTask,
+  loadState, listEvents, createContact, updateContact, createManualInquiry, updateInquiry, convertInquiry, createOpportunity,
+  updateOpportunity, changeStage, createProject, updateProject, addDeliverable, updateDeliverable, recordPayment, logInteraction,
+  createTask, updateTask,
 } from "../lib/crm.js";
-import { computeKpis, computeAlerts, computeFunnel, computeSources, computeWorkAttraction, computeUpcoming, computeMoney, parsePeriod, oppValue } from "../lib/metrics.js";
-import { publicConfig, stageOf, redactOpportunity } from "../lib/model.js";
+import { computeMetrics, computeAttention, computeFunnels, computeCharts, calendarItems, computeAttribution, parseRange, projectMoney, nextFollowUp } from "../lib/metrics.js";
+import { publicConfig, stageOf, inquiryIsOpen, projectPhase, labelOf, INQUIRY_TYPES } from "../lib/model.js";
 import { ga4Config, ga4Overview } from "../lib/ga4.js";
 import { notifyConfigured } from "../lib/notify.js";
 
@@ -21,51 +23,49 @@ const route = (method, pattern, permission, handler) => {
   const re = new RegExp(`^${pattern.replace(/:(\w+)/g, (_, n) => (names.push(n), "([A-Za-z0-9_-]+)"))}$`);
   routes.push({ method, re, names, permission, handler });
 };
+const manager = (s) => s.can("records.read");
+const match = (q, ...fields) => !q || fields.some((f) => f && String(f).toLowerCase().includes(q));
 
-// ---- enrichment: computed fields, never stored ----
+// ---- shaping records for the screen ----
 
-function enrichOpp(state, o, now, canFinance) {
-  const st = stageOf(o.kind, o.stage);
-  const open = Object.values(state.tasks)
-    .filter((x) => x.status === "open" && x.relatedType === "opportunity" && x.relatedId === o.id)
-    .sort((a, b) => (a.dueAt || "9").localeCompare(b.dueAt || "9"));
-  const contact = state.contacts[o.contactId];
-  const lastTouch = Math.max(Date.parse(o.stageEnteredAt), Date.parse(o.updatedAt), Date.parse(contact?.lastInteractionAt || 0) || 0);
-  const invoiced = o.payments.filter((p) => p.type === "invoiced").reduce((a, p) => a + p.amount, 0);
-  const received = o.payments.filter((p) => p.type === "received").reduce((a, p) => a + p.amount, 0);
+const userNames = (users) => Object.fromEntries(users.map((u) => [u.id, u.name]));
+
+function inquiryRow(state, i) {
+  const { fingerprint, message, ...rest } = i;
+  return { ...rest, messagePreview: message ? message.slice(0, 160) : null, nextFollowUpAt: nextFollowUp(state, "inquiry", i.id), ageHours: Math.round((Date.now() - Date.parse(i.createdAt)) / 3600e3) };
+}
+
+function oppRow(state, o, s) {
+  const st = stageOf(o.type, o.stage);
+  const tasks = Object.values(state.tasks).filter((x) => !x.archivedAt && x.status === "open" && x.relatedType === "opportunity" && x.relatedId === o.id).sort((a, b) => (a.dueAt || "9").localeCompare(b.dueAt || "9"));
   return {
-    ...(canFinance ? o : redactOpportunity(o)),
-    contactName: contact?.name || null,
+    ...o,
+    quote: s.can("money.read") ? o.quote : null,
+    contactName: state.contacts[o.contactId]?.name || null,
     stageLabel: st?.label || o.stage,
     stageType: st?.type || "open",
     nextHint: st?.next || null,
-    daysInStage: Math.floor((now - Date.parse(o.stageEnteredAt)) / DAY),
-    nextTask: open[0] ? { id: open[0].id, title: open[0].title, dueAt: open[0].dueAt, kind: open[0].kind } : null,
-    awaitingReply: open.some((x) => x.kind === "reply"),
-    stale: st?.type === "open" && st.staleDays ? (now - lastTouch) / DAY > st.staleDays : false,
-    money: canFinance ? { value: oppValue(o), invoiced, received, outstanding: Math.max(0, invoiced - received) } : null,
+    daysInStage: Math.floor((Date.now() - Date.parse(o.stageEnteredAt)) / DAY),
+    nextTask: tasks[0] ? { id: tasks[0].id, title: tasks[0].title, dueAt: tasks[0].dueAt, kind: tasks[0].kind } : null,
   };
 }
 
-function enrichContact(state, c) {
-  const opps = Object.values(state.opps).filter((o) => o.contactId === c.id);
-  const oppIds = new Set(opps.map((o) => o.id));
-  const open = Object.values(state.tasks)
-    .filter((x) => x.status === "open" && ((x.relatedType === "contact" && x.relatedId === c.id) || (x.relatedType === "opportunity" && oppIds.has(x.relatedId))))
-    .sort((a, b) => (a.dueAt || "9").localeCompare(b.dueAt || "9"));
-  const status = opps.some((o) => o.kind === "project" && o.wonAt) ? "client" : opps.some((o) => stageOf(o.kind, o.stage)?.type === "open") ? "active" : opps.length ? "past" : "contact";
-  return {
-    ...c,
-    status,
-    opportunityCount: opps.length,
-    openOpportunities: opps.filter((o) => stageOf(o.kind, o.stage)?.type === "open").length,
-    nextTask: open[0] ? { id: open[0].id, title: open[0].title, dueAt: open[0].dueAt, kind: open[0].kind } : null,
-    awaitingReply: open.some((x) => x.kind === "reply"),
+function projectRow(p, s, names) {
+  const live = p.deliverables.filter((d) => !d.archivedAt);
+  const staffView = !manager(s);
+  const deliverables = staffView ? live.filter((d) => d.assigneeId === s.user.id) : live;
+  const base = {
+    id: p.id, title: p.title, clientName: p.clientName, organization: p.organization, stage: p.stage, phase: projectPhase(p.stage),
+    startAt: p.startAt, deadline: p.deadline, assigneeId: p.assigneeId, assigneeName: p.assigneeId ? names[p.assigneeId] || "Former collaborator" : "Sean",
+    deliverables: deliverables.map((d) => ({ ...d, assigneeName: d.assigneeId ? names[d.assigneeId] || "Former collaborator" : "Sean" })),
+    progress: { done: live.filter((d) => d.status === "done").length, total: live.length },
+    isTest: p.isTest, createdAt: p.createdAt, updatedAt: p.updatedAt, archivedAt: p.archivedAt,
   };
+  if (staffView) return base;
+  return { ...base, opportunityId: p.opportunityId, contactId: p.contactId, ...(s.can("money.read") ? { value: p.value, payments: p.payments, money: projectMoney(p) } : {}) };
 }
 
-const has = (s, p) => s.permissions.includes(p);
-const match = (q, ...fields) => !q || fields.some((f) => f && String(f).toLowerCase().includes(q));
+const staffCanSee = (p, uid) => p.assigneeId === uid || p.deliverables.some((d) => !d.archivedAt && d.assigneeId === uid);
 
 // ---- session ----
 
@@ -74,234 +74,266 @@ route("POST", "login", null, async ({ req, context }) => {
   const { user, cookie } = await login(req, context, { username: body.username, password: body.password });
   return json({ ok: true, user: { name: user.name, role: user.role } }, 200, { "Set-Cookie": cookie });
 });
-
 route("POST", "logout", null, async ({ req }) => json({ ok: true }, 200, { "Set-Cookie": await logout(req) }));
-
-route("GET", "me", "crm.read", async ({ session }) =>
+route("GET", "me", "work.read", async ({ session }) =>
   json({
     user: { id: session.user.id, name: session.user.name, role: session.user.role },
     permissions: session.permissions,
     config: publicConfig(),
-    integrations: { ga4: ga4Config().configured, email: notifyConfigured() },
+    users: (await listUsers()).map(({ id, name, role, active }) => ({ id, name, role, active: active !== false })),
   }),
 );
 
 // ---- overview ----
 
-route("GET", "overview", "crm.read", async ({ url, session }) => {
-  const period = parsePeriod(url.searchParams.get("period") || "30d");
-  const state = await loadState();
-  const finance = has(session, "finance.read");
-  const kpis = computeKpis(state, period).map((k) => (k.financial && !finance ? { ...k, value: null, previous: null, change: null, series: null, redacted: true } : k));
-  return json({
-    period: { key: period.key, from: new Date(period.from).toISOString(), to: new Date(period.to).toISOString() },
-    kpis,
-    alerts: computeAlerts(state, period.to).filter((a) => finance || !a.financial),
-    upcoming: computeUpcoming(state, period.to),
-    funnels: { project: computeFunnel(state, "project", period), job: computeFunnel(state, "job", period) },
-    sources: computeSources(state, period),
-    work: computeWorkAttraction(state, period),
-    recent: has(session, "activity.read") ? await listEvents({ limit: 8 }) : [],
-    counts: { contacts: Object.keys(state.contacts).length, opportunities: Object.keys(state.opps).length },
-  });
-});
-
-route("GET", "search", "crm.read", async ({ url, session }) => {
-  const q = (url.searchParams.get("q") || "").trim().toLowerCase();
-  if (q.length < 2) return json({ contacts: [], opportunities: [] });
+route("GET", "overview", "work.read", async ({ url, session }) => {
   const state = await loadState();
   const now = Date.now();
+  const names = userNames(await listUsers());
+  if (!manager(session)) {
+    const uid = session.user.id;
+    const projects = Object.values(state.projects).filter((p) => !p.archivedAt && staffCanSee(p, uid));
+    return json({
+      role: "staff",
+      attention: computeAttention(state, now, { userId: uid }),
+      projects: projects.map((p) => projectRow(p, session, names)),
+      upcoming: calendarItems(state, now - DAY, now + 14 * DAY, { userId: uid }).filter((i) => !i.done),
+    });
+  }
+  let range;
+  try {
+    range = parseRange({ from: url.searchParams.get("from"), to: url.searchParams.get("to"), period: url.searchParams.get("period") });
+  } catch (e) {
+    throw new HttpError(400, "invalid", e.message);
+  }
+  const money = session.can("money.read");
+  const metrics = computeMetrics(state, range, now);
+  if (!money) for (const k of ["quoted_pipeline", "cash_collected", "unpaid_balances"]) metrics[k] = { ...metrics[k], value: null, previous: null, hidden: true };
+  const charts = computeCharts(state, now);
+  const ga = ga4Config().configured ? await ga4Overview(range.days) : null;
   return json({
-    contacts: Object.values(state.contacts).filter((c) => match(q, c.name, c.email, c.company, c.title)).slice(0, 8).map((c) => enrichContact(state, c)),
-    opportunities: Object.values(state.opps).filter((o) => match(q, o.title, o.company, o.summary, o.roleTitle)).slice(0, 8).map((o) => enrichOpp(state, o, now, has(session, "finance.read"))),
+    role: "manager",
+    range: { from: range.fromDate, to: range.toDate, timezone: range.timezone },
+    metrics,
+    attention: computeAttention(state, now).filter((a) => money || !a.money),
+    funnels: computeFunnels(state, range),
+    charts: { inquiriesByWeek: charts.inquiriesByWeek, cashByMonth: money ? charts.cashByMonth : null },
+    upcoming: calendarItems(state, now - DAY, now + 14 * DAY).filter((i) => !i.done).slice(0, 12),
+    attribution: computeAttribution(state, range),
+    traffic: ga && ga.connected ? { sessions: ga.totals.sessions, users: ga.totals.users, resumeDownloads: ga.events.resume_downloaded, fetchedAt: ga.fetchedAt } : null,
+    recent: await listEvents({ limit: 6 }),
   });
 });
 
-// ---- contacts ----
-
-route("GET", "contacts", "crm.read", async ({ url }) => {
+route("GET", "search", "records.read", async ({ url }) => {
   const q = (url.searchParams.get("q") || "").trim().toLowerCase();
+  if (q.length < 2) return json({ inquiries: [], opportunities: [], projects: [], contacts: [] });
+  const s = await loadState();
+  const take = (arr) => arr.filter((r) => !r.archivedAt).slice(0, 6);
+  return json({
+    inquiries: take(Object.values(s.inquiries).filter((i) => match(q, i.contactName, i.organization, i.message))).map((i) => ({ id: i.id, title: i.contactName, sub: `${labelOf(INQUIRY_TYPES, i.type)} · ${i.status}` })),
+    opportunities: take(Object.values(s.opps).filter((o) => match(q, o.title, o.organization, o.role))).map((o) => ({ id: o.id, title: o.title, sub: stageOf(o.type, o.stage)?.label })),
+    projects: take(Object.values(s.projects).filter((p) => match(q, p.title, p.clientName, p.organization))).map((p) => ({ id: p.id, title: p.title, sub: p.clientName || "" })),
+    contacts: take(Object.values(s.contacts).filter((c) => match(q, c.name, c.email, c.company))).map((c) => ({ id: c.id, title: c.name, sub: [c.company, c.email].filter(Boolean).join(" · ") })),
+  });
+});
+
+// ---- inquiries ----
+
+route("GET", "inquiries", "records.read", async ({ url }) => {
+  const status = url.searchParams.get("status") || "open";
   const type = url.searchParams.get("type");
-  const status = url.searchParams.get("status");
-  const state = await loadState();
-  const items = Object.values(state.contacts)
-    .filter((c) => match(q, c.name, c.email, c.company, c.title) && (!type || c.type === type))
-    .map((c) => enrichContact(state, c))
-    .filter((c) => !status || c.status === status)
-    .sort((a, b) => (b.lastInteractionAt || b.createdAt).localeCompare(a.lastInteractionAt || a.createdAt));
+  const q = (url.searchParams.get("q") || "").trim().toLowerCase();
+  const s = await loadState();
+  const items = Object.values(s.inquiries)
+    .filter((i) => (status === "archived" ? Boolean(i.archivedAt) : !i.archivedAt))
+    .filter((i) => ["all", "archived"].includes(status) || (status === "open" ? inquiryIsOpen(i.status) : status === "converted" ? i.status === "converted" : !inquiryIsOpen(i.status) && i.status !== "converted"))
+    .filter((i) => (!type || i.type === type) && match(q, i.contactName, i.organization, i.message))
+    .map((i) => inquiryRow(s, i))
+    .sort((a, b) => (a.status === "new" ? 0 : 1) - (b.status === "new" ? 0 : 1) || b.createdAt.localeCompare(a.createdAt));
   return json({ items });
 });
 
-route("POST", "contacts", "crm.write", async ({ req, session }) => {
-  const contact = await createContact(await readJson(req), session.user.id);
-  return json({ contact }, 201);
-});
+route("POST", "inquiries", "records.write", async ({ req, session }) => json({ inquiry: await createManualInquiry(await readJson(req), session.user.id) }, 201));
 
-route("GET", "contacts/:id", "crm.read", async ({ params, session }) => {
-  const state = await loadState();
-  const c = state.contacts[params.id];
-  if (!c) throw new HttpError(404, "not_found", "That contact doesn't exist.");
-  const now = Date.now();
-  const opps = Object.values(state.opps).filter((o) => o.contactId === c.id).map((o) => enrichOpp(state, o, now, has(session, "finance.read")));
-  const ids = new Set(opps.map((o) => o.id));
-  const tasks = Object.values(state.tasks).filter((x) => (x.relatedType === "contact" && x.relatedId === c.id) || (x.relatedType === "opportunity" && ids.has(x.relatedId)));
+route("GET", "inquiries/:id", "records.read", async ({ params, session }) => {
+  const s = await loadState();
+  const i = s.inquiries[params.id];
+  if (!i) throw new HttpError(404, "not_found", "That inquiry doesn't exist.");
+  const opp = i.convertedTo ? s.opps[i.convertedTo.id] : null;
+  const { fingerprint, ...inquiry } = i;
   return json({
-    contact: enrichContact(state, c),
-    opportunities: opps,
-    tasks: tasks.sort((a, b) => (a.status === "open" ? 0 : 1) - (b.status === "open" ? 0 : 1) || (a.dueAt || "9").localeCompare(b.dueAt || "9")),
-    events: has(session, "activity.read") ? await listEvents({ contactId: c.id, limit: 100 }) : [],
+    inquiry: { ...inquiry, nextFollowUpAt: nextFollowUp(s, "inquiry", i.id) },
+    contact: s.contacts[i.contactId] || null,
+    opportunity: opp ? oppRow(s, opp, session) : null,
+    tasks: Object.values(s.tasks).filter((x) => !x.archivedAt && x.relatedType === "inquiry" && x.relatedId === i.id),
+    events: await listEvents({ inquiryId: i.id, limit: 100 }),
   });
 });
 
-route("PATCH", "contacts/:id", "crm.write", async ({ req, params, session }) => json({ contact: await updateContact(params.id, await readJson(req), session.user.id) }));
+route("PATCH", "inquiries/:id", "records.write", async ({ req, params, session }) => json({ inquiry: await updateInquiry(params.id, await readJson(req), session.user.id) }));
+route("POST", "inquiries/:id/convert", "records.write", async ({ req, params, session }) => json({ opportunity: await convertInquiry(params.id, await readJson(req), session.user.id) }, 201));
 
 // ---- opportunities ----
 
-route("GET", "opportunities", "crm.read", async ({ url, session }) => {
-  const q = (url.searchParams.get("q") || "").trim().toLowerCase();
-  const kind = url.searchParams.get("kind");
+route("GET", "opportunities", "records.read", async ({ url, session }) => {
+  const type = url.searchParams.get("type") || "client";
   const status = url.searchParams.get("status") || "open";
-  const stage = url.searchParams.get("stage");
-  const source = url.searchParams.get("source");
-  const state = await loadState();
-  const now = Date.now();
-  const items = Object.values(state.opps)
-    .filter((o) => (!kind || o.kind === kind) && (!stage || o.stage === stage) && (!source || o.source === source) && match(q, o.title, o.company, o.roleTitle, state.contacts[o.contactId]?.name))
-    .map((o) => enrichOpp(state, o, now, has(session, "finance.read")))
-    .filter((o) => status === "all" || o.stageType === status || (status === "open" && o.kind === "project" && o.stage === "active"))
-    .sort((a, b) => Number(b.awaitingReply) - Number(a.awaitingReply) || Number(b.stale) - Number(a.stale) || b.updatedAt.localeCompare(a.updatedAt));
+  const q = (url.searchParams.get("q") || "").trim().toLowerCase();
+  const s = await loadState();
+  const items = Object.values(s.opps)
+    .filter((o) => o.type === type && !o.archivedAt && match(q, o.title, o.organization, o.role, s.contacts[o.contactId]?.name))
+    .map((o) => oppRow(s, o, session))
+    .filter((o) => status === "all" || o.stageType === status)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return json({ items });
 });
 
-route("POST", "opportunities", "crm.write", async ({ req, session }) => {
-  const body = await readJson(req);
-  let contactId = body.contactId || null;
-  if (!contactId && body.newContact?.name) {
-    contactId = (await createContact({ type: body.kind === "job" ? "recruiter" : "client", ...body.newContact }, session.user.id)).id;
-  }
-  if (!has(session, "finance.write")) delete body.estimate;
-  const opp = await createOpportunity({ ...body, contactId }, session.user.id, { needsReply: Boolean(body.needsReply) });
-  return json({ opportunity: opp }, 201);
-});
+route("POST", "opportunities", "records.write", async ({ req, session }) => json({ opportunity: await createOpportunity(await readJson(req), session.user.id, { canMoney: session.can("money.write") }) }, 201));
 
-route("GET", "opportunities/:id", "crm.read", async ({ params, session }) => {
-  const state = await loadState();
-  const o = state.opps[params.id];
+route("GET", "opportunities/:id", "records.read", async ({ params, session }) => {
+  const s = await loadState();
+  const o = s.opps[params.id];
   if (!o) throw new HttpError(404, "not_found", "That opportunity doesn't exist.");
-  const tasks = Object.values(state.tasks).filter((x) => x.relatedType === "opportunity" && x.relatedId === o.id);
+  const inq = o.inquiryId ? s.inquiries[o.inquiryId] : null;
+  const prj = o.projectId ? s.projects[o.projectId] : null;
   return json({
-    opportunity: enrichOpp(state, o, Date.now(), has(session, "finance.read")),
-    contact: state.contacts[o.contactId] ? enrichContact(state, state.contacts[o.contactId]) : null,
-    tasks: tasks.sort((a, b) => (a.status === "open" ? 0 : 1) - (b.status === "open" ? 0 : 1) || (a.dueAt || "9").localeCompare(b.dueAt || "9")),
-    events: has(session, "activity.read") ? await listEvents({ opportunityId: o.id, limit: 100 }) : [],
+    opportunity: oppRow(s, o, session),
+    contact: s.contacts[o.contactId] || null,
+    inquiry: inq ? { id: inq.id, createdAt: inq.createdAt, message: inq.message, attribution: inq.attribution, source: inq.source } : null,
+    project: prj ? { id: prj.id, title: prj.title, stage: prj.stage } : null,
+    tasks: Object.values(s.tasks).filter((x) => !x.archivedAt && x.relatedType === "opportunity" && x.relatedId === o.id),
+    events: await listEvents({ opportunityId: o.id, limit: 100 }),
   });
 });
 
-route("PATCH", "opportunities/:id", "crm.write", async ({ req, params, session }) => {
-  const opp = await updateOpportunity(params.id, await readJson(req), session.user.id, { canFinance: has(session, "finance.write") });
-  return json({ opportunity: opp });
+route("PATCH", "opportunities/:id", "records.write", async ({ req, params, session }) => json({ opportunity: await updateOpportunity(params.id, await readJson(req), session.user.id, { canMoney: session.can("money.write") }) }));
+route("POST", "opportunities/:id/stage", "records.write", async ({ req, params, session }) => {
+  const b = await readJson(req);
+  return json({ opportunity: await changeStage(params.id, { stage: b.stage, lossReason: b.lossReason || null }, session.user.id) });
+});
+route("POST", "opportunities/:id/project", "records.write", async ({ req, params, session }) => json({ project: await createProject({ ...(await readJson(req)), opportunityId: params.id }, session.user.id, { canMoney: session.can("money.write") }) }, 201));
+
+// ---- contacts ----
+
+route("GET", "contacts", "records.read", async ({ url }) => {
+  const q = (url.searchParams.get("q") || "").trim().toLowerCase();
+  const s = await loadState();
+  const items = Object.values(s.contacts)
+    .filter((c) => !c.archivedAt && match(q, c.name, c.email, c.company, c.title))
+    .map((c) => ({ ...c, inquiries: Object.values(s.inquiries).filter((i) => i.contactId === c.id).length, opportunities: Object.values(s.opps).filter((o) => o.contactId === c.id && !o.archivedAt).length }))
+    .sort((a, b) => (b.lastInteractionAt || b.createdAt).localeCompare(a.lastInteractionAt || a.createdAt));
+  return json({ items });
+});
+route("POST", "contacts", "records.write", async ({ req, session }) => json({ contact: await createContact(await readJson(req), session.user.id) }, 201));
+route("GET", "contacts/:id", "records.read", async ({ params, session }) => {
+  const s = await loadState();
+  const c = s.contacts[params.id];
+  if (!c) throw new HttpError(404, "not_found", "That contact doesn't exist.");
+  return json({
+    contact: c,
+    inquiries: Object.values(s.inquiries).filter((i) => i.contactId === c.id).map((i) => inquiryRow(s, i)),
+    opportunities: Object.values(s.opps).filter((o) => o.contactId === c.id && !o.archivedAt).map((o) => oppRow(s, o, session)),
+    projects: Object.values(s.projects).filter((p) => p.contactId === c.id && !p.archivedAt).map((p) => ({ id: p.id, title: p.title, stage: p.stage })),
+    events: await listEvents({ contactId: c.id, limit: 80 }),
+  });
+});
+route("PATCH", "contacts/:id", "records.write", async ({ req, params, session }) => json({ contact: await updateContact(params.id, await readJson(req), session.user.id) }));
+
+// ---- projects (staff see only their assigned work) ----
+
+route("GET", "projects", "work.read", async ({ url, session }) => {
+  const phase = url.searchParams.get("phase") || "current";
+  const s = await loadState();
+  const names = userNames(await listUsers());
+  const items = Object.values(s.projects)
+    .filter((p) => !p.archivedAt && (manager(session) || staffCanSee(p, session.user.id)))
+    .filter((p) => phase === "all" || (phase === "current" ? projectPhase(p.stage) !== "done" : projectPhase(p.stage) === "done"))
+    .map((p) => projectRow(p, session, names))
+    .sort((a, b) => (a.deadline || "9").localeCompare(b.deadline || "9"));
+  return json({ items });
 });
 
-route("POST", "opportunities/:id/stage", "crm.write", async ({ req, params, session }) => {
-  const body = await readJson(req);
-  const opp = await changeStage(params.id, { stage: body.stage, lossReason: body.lossReason || null, note: body.note || null }, session.user.id);
-  return json({ opportunity: opp });
+route("POST", "projects", "records.write", async ({ req, session }) => json({ project: await createProject(await readJson(req), session.user.id, { canMoney: session.can("money.write") }) }, 201));
+
+route("GET", "projects/:id", "work.read", async ({ params, session }) => {
+  const s = await loadState();
+  const p = s.projects[params.id];
+  if (!p || (!manager(session) && !staffCanSee(p, session.user.id))) throw new HttpError(404, "not_found", "That project doesn't exist.");
+  const names = userNames(await listUsers());
+  if (!manager(session)) return json({ project: projectRow(p, session, names) });
+  return json({
+    project: projectRow(p, session, names),
+    contact: s.contacts[p.contactId] || null,
+    opportunity: p.opportunityId && s.opps[p.opportunityId] ? { id: p.opportunityId, title: s.opps[p.opportunityId].title } : null,
+    tasks: Object.values(s.tasks).filter((x) => !x.archivedAt && x.relatedType === "project" && x.relatedId === p.id),
+    events: await listEvents({ projectId: p.id, limit: 100 }),
+  });
 });
 
-route("POST", "opportunities/:id/payments", "finance.write", async ({ req, params, session }) => json({ opportunity: await recordPayment(params.id, await readJson(req), session.user.id) }, 201));
+route("PATCH", "projects/:id", "records.write", async ({ req, params, session }) => json({ project: await updateProject(params.id, await readJson(req), session.user.id, { canMoney: session.can("money.write") }) }));
+route("POST", "projects/:id/deliverables", "records.write", async ({ req, params, session }) => json({ deliverable: await addDeliverable(params.id, await readJson(req), session.user.id) }, 201));
+route("PATCH", "projects/:id/deliverables/:did", "work.update", async ({ req, params, session }) => {
+  const s = await loadState();
+  const p = s.projects[params.id];
+  if (!p || (!manager(session) && !staffCanSee(p, session.user.id))) throw new HttpError(404, "not_found", "That project doesn't exist.");
+  return json({ deliverable: await updateDeliverable(params.id, params.did, await readJson(req), session.user.id, { manager: manager(session) }) });
+});
+route("POST", "projects/:id/payments", "money.write", async ({ req, params, session }) => json({ payment: await recordPayment(params.id, await readJson(req), session.user.id) }, 201));
 
-route("POST", "interactions", "crm.write", async ({ req, session }) => {
-  const body = await readJson(req);
-  const evt = await logInteraction({ opportunityId: body.opportunityId || null, contactId: body.contactId || null, type: body.type, direction: body.direction, note: body.note, at: body.at }, session.user.id);
-  return json({ event: evt }, 201);
+// ---- calendar & tasks ----
+
+route("GET", "calendar", "work.read", async ({ url, session }) => {
+  const from = Date.parse(url.searchParams.get("from") || "") || Date.now() - 7 * DAY;
+  const to = Date.parse(url.searchParams.get("to") || "") || Date.now() + 35 * DAY;
+  if (to <= from || to - from > 120 * DAY) throw new HttpError(400, "invalid", "Ask for a range of 120 days or less.");
+  const s = await loadState();
+  return json({ items: calendarItems(s, from, to, { userId: manager(session) ? null : session.user.id }) });
 });
 
-// ---- tasks ----
-
-route("GET", "tasks", "tasks.read", async ({ url }) => {
+route("GET", "tasks", "work.read", async ({ url, session }) => {
   const view = url.searchParams.get("view") || "open";
-  const state = await loadState();
+  const s = await loadState();
   const now = Date.now();
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
-  const items = Object.values(state.tasks)
-    .filter((x) => {
-      if (view === "done") return x.status === "done";
-      if (view === "suggested") return x.status === "suggested";
-      if (x.status !== "open") return false;
-      if (view === "overdue") return x.dueAt && Date.parse(x.dueAt) < now;
-      if (view === "today") return x.dueAt && Date.parse(x.dueAt) <= endOfToday.getTime();
-      return true;
-    })
-    .map((x) => ({ ...x, related: x.relatedType === "opportunity" ? state.opps[x.relatedId]?.title : x.relatedType === "contact" ? state.contacts[x.relatedId]?.name : null, overdue: x.status === "open" && x.dueAt && Date.parse(x.dueAt) < now }))
+  const all = Object.values(s.tasks).filter((x) => !x.archivedAt && (manager(session) || x.assigneeId === session.user.id));
+  const title = (x) => (x.relatedType === "inquiry" ? s.inquiries[x.relatedId]?.contactName : x.relatedType === "opportunity" ? s.opps[x.relatedId]?.title : x.relatedType === "project" ? s.projects[x.relatedId]?.title : x.relatedType === "contact" ? s.contacts[x.relatedId]?.name : null);
+  const items = all
+    .filter((x) => (view === "done" ? x.status === "done" : x.status === "open" && (view !== "overdue" || (x.dueAt && Date.parse(x.dueAt) < now))))
+    .map((x) => ({ ...x, related: title(x), overdue: x.status === "open" && Boolean(x.dueAt) && Date.parse(x.dueAt) < now }))
     .sort((a, b) => (view === "done" ? (b.completedAt || "").localeCompare(a.completedAt || "") : (a.dueAt || "9").localeCompare(b.dueAt || "9")));
-  const counts = {
-    open: Object.values(state.tasks).filter((x) => x.status === "open").length,
-    overdue: Object.values(state.tasks).filter((x) => x.status === "open" && x.dueAt && Date.parse(x.dueAt) < now).length,
-    suggested: Object.values(state.tasks).filter((x) => x.status === "suggested").length,
-  };
-  return json({ items: items.slice(0, 200), counts });
+  return json({ items: items.slice(0, 200), counts: { open: all.filter((x) => x.status === "open").length, overdue: all.filter((x) => x.status === "open" && x.dueAt && Date.parse(x.dueAt) < now).length } });
 });
 
-route("POST", "tasks", "tasks.write", async ({ req, session }) => json({ task: await createTask(await readJson(req), session.user.id) }, 201));
-route("PATCH", "tasks/:id", "tasks.write", async ({ req, params, session }) => json({ task: await updateTask(params.id, await readJson(req), session.user.id) }));
+route("POST", "tasks", "records.write", async ({ req, session }) => json({ task: await createTask(await readJson(req), session.user.id) }, 201));
+route("PATCH", "tasks/:id", "work.update", async ({ req, params, session }) => json({ task: await updateTask(params.id, await readJson(req), session.user.id, { manager: manager(session) }) }));
 
-// ---- activity, money, analytics ----
-
-route("GET", "activity", "activity.read", async ({ url }) => {
-  const limit = Math.min(200, Number(url.searchParams.get("limit")) || 60);
-  return json({ items: await listEvents({ limit, before: url.searchParams.get("before") || null }) });
+route("POST", "interactions", "records.write", async ({ req, session }) => {
+  const b = await readJson(req);
+  return json({ event: await logInteraction({ entity: b.entity, id: b.id, type: b.type, direction: b.direction, note: b.note, at: b.at }, session.user.id) }, 201);
 });
 
-route("GET", "money", "finance.read", async ({ url }) => {
-  const state = await loadState();
-  return json(computeMoney(state, parsePeriod(url.searchParams.get("period") || "90d")));
-});
+// ---- settings: team, connections, export ----
 
-route("GET", "analytics", "analytics.read", async ({ url }) => {
-  const period = parsePeriod(url.searchParams.get("period") || "30d");
-  const state = await loadState();
-  return json({
-    period: { key: period.key },
-    ga4: await ga4Overview(period.days),
-    sources: computeSources(state, period),
-    work: computeWorkAttraction(state, period),
-    funnels: { project: computeFunnel(state, "project", period), job: computeFunnel(state, "job", period) },
-  });
-});
+route("GET", "users", "users.manage", async () => json({ items: await listUsers() }));
+route("POST", "users", "users.manage", async ({ req }) => json(await createUser(await readJson(req, 2000)), 201));
+route("PATCH", "users/:id", "users.manage", async ({ req, params }) => json(await updateUser(params.id, await readJson(req, 2000))));
 
-// ---- settings: integrations, API keys, export ----
-
-route("GET", "integrations", "crm.read", async () =>
+route("GET", "integrations", "work.read", async () =>
   json({
     ga4: { configured: ga4Config().configured, vars: ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", "GA4_SEAN_DESPAIN_PROPERTY_ID"] },
     email: { configured: notifyConfigured(), vars: ["RESEND_API_KEY", "NOTIFY_EMAIL"] },
+    jarvis: { configured: jarvisTokenConfigured(), vars: ["JARVIS_SITE_API_TOKEN"], baseUrl: "https://seandespain.com/api/jarvis/v1" },
+    payments: { configured: false, note: "No payment or accounting provider is connected. Payments are manual entries." },
     storage: { provider: "Netlify Blobs", store: "sd-portal" },
   }),
 );
 
-route("GET", "api-keys", "apikeys.manage", async () => json({ items: await listApiKeys(), scopes: API_SCOPES }));
-
-route("POST", "api-keys", "apikeys.manage", async ({ req, session }) => {
-  const body = await readJson(req, 2000);
-  const name = v.str(body.name, "Name", { max: 60, required: true });
-  const scopes = Array.isArray(body.scopes) ? body.scopes.filter((s) => s in API_SCOPES) : [];
-  if (!scopes.includes("read")) scopes.unshift("read");
-  const { id, token } = await createApiKey({ name, scopes, createdBy: session.user.id });
-  return json({ id, token, note: "Copy this key now. It won't be shown again." }, 201);
-});
-
-route("DELETE", "api-keys/:id", "apikeys.manage", async ({ params }) => {
-  if (!(await revokeApiKey(params.id))) throw new HttpError(404, "not_found", "That key doesn't exist.");
-  return json({ ok: true });
-});
-
 route("GET", "export", "export", async () => {
-  const state = await loadState();
+  const s = await loadState();
   return json(
-    { exportedAt: new Date().toISOString(), contacts: Object.values(state.contacts), opportunities: Object.values(state.opps), tasks: Object.values(state.tasks), events: await listEvents({ limit: 100_000 }) },
+    { exportedAt: new Date().toISOString(), contacts: Object.values(s.contacts), inquiries: Object.values(s.inquiries), opportunities: Object.values(s.opps), projects: Object.values(s.projects), tasks: Object.values(s.tasks) },
     200,
-    { "Content-Disposition": `attachment; filename="portal-export-${new Date().toISOString().slice(0, 10)}.json"` },
+    { "Content-Disposition": `attachment; filename="seandespain-portal-${new Date().toISOString().slice(0, 10)}.json"` },
   );
 });
 
